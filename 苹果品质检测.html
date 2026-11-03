@@ -1,0 +1,2549 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>苹果品质检测 · 线性模型 / 决策树 · 机器学习实验台</title>
+<meta name="description" content="基于周志华《机器学习》线性模型、模型评估与选择、决策树三章知识构建的苹果品质三分类检测页。单文件，双击即用。">
+<style>
+:root{
+  --bg:#f5faf7;--bg-2:#eef7f1;--surface:#fff;--surface-2:#fbfdfb;
+  --line:#e2ece6;--line-strong:#cfe0d6;--ink:#14231c;--ink-2:#55685e;--ink-3:#8a9a91;
+  --accent:#2f9e6f;--accent-dark:#227a55;--accent-soft:#e7f6ee;
+  --perfect:#2f9e6f;--good:#d99a2b;--bad:#d9695f;
+  --radius:18px;--shadow-sm:0 1px 2px rgba(18,62,44,.05);
+  --shadow:0 1px 2px rgba(18,62,44,.04),0 14px 30px -18px rgba(18,62,44,.28);
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;color:var(--ink);font-size:15px;line-height:1.65;
+  background:
+    radial-gradient(760px 420px at 8% -8%,#e6f6ee 0,rgba(230,246,238,0) 62%),
+    radial-gradient(680px 400px at 96% 4%,#eef4fb 0,rgba(238,244,251,0) 58%),
+    var(--bg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{width:min(1120px,calc(100% - 40px));margin:0 auto}
+.topbar{position:sticky;top:0;z-index:30;backdrop-filter:saturate(160%) blur(12px);background:rgba(250,253,251,.82);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:18px;height:60px}
+.brand{display:flex;align-items:center;gap:9px;font-weight:650;letter-spacing:-.01em;white-space:nowrap}
+.brand .dot{width:26px;height:26px;border-radius:9px;background:linear-gradient(145deg,#45b183,#2f9e6f 55%,#1f7b54);display:grid;place-items:center;font-size:14px;box-shadow:0 6px 14px -6px rgba(47,158,111,.8)}
+.nav{margin-left:auto;display:flex;gap:4px}
+.nav a{color:var(--ink-2);text-decoration:none;font-size:13.5px;padding:7px 12px;border-radius:10px;transition:.16s}
+.nav a:hover{background:var(--accent-soft);color:var(--accent-dark)}
+.badge-src{font-size:11.5px;color:var(--accent-dark);background:var(--accent-soft);border:1px solid #cdeadd;padding:4px 9px;border-radius:999px;white-space:nowrap}
+.hero{padding:54px 0 26px}
+.hero h1{font-size:clamp(30px,4.4vw,44px);line-height:1.15;letter-spacing:-.025em;margin:0 0 14px;font-weight:700}
+.hero h1 em{font-style:normal;color:var(--accent)}
+.hero p.lead{margin:0;max-width:680px;color:var(--ink-2);font-size:15.5px}
+.hero-tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.tag{font-size:12.5px;color:var(--ink-2);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 12px;box-shadow:var(--shadow-sm)}
+.tag b{color:var(--accent-dark);font-weight:600}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:26px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:15px;padding:14px 16px;box-shadow:var(--shadow-sm)}
+.stat .k{font-size:12px;color:var(--ink-3);letter-spacing:.02em}
+.stat .v{font-size:24px;font-weight:660;letter-spacing:-.02em;margin-top:2px}
+.stat .v small{font-size:12px;font-weight:500;color:var(--ink-3);margin-left:3px}
+section{padding:34px 0}
+.sec-head{display:flex;align-items:flex-end;gap:14px;margin-bottom:18px;flex-wrap:wrap}
+.sec-head h2{font-size:21px;margin:0;letter-spacing:-.015em;font-weight:660;display:flex;align-items:center;gap:10px}
+.sec-head .num{font-family:var(--mono);font-size:12px;color:var(--accent-dark);background:var(--accent-soft);border-radius:7px;padding:3px 7px;border:1px solid #cdeadd}
+.sec-head .sub{color:var(--ink-3);font-size:13px;margin-left:auto}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.card-head{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;background:var(--surface-2)}
+.card-head h3{margin:0;font-size:14.5px;font-weight:620}
+.card-head .hint{font-size:12px;color:var(--ink-3);margin-left:auto}
+.card-body{padding:20px}
+.grid-detect{display:grid;grid-template-columns:1.05fr .95fr;gap:16px;align-items:start}
+.feats{display:grid;grid-template-columns:1fr 1fr;gap:14px 18px}
+.feat{min-width:0}
+.feat .row{display:flex;align-items:baseline;gap:6px}
+.feat label{font-size:13px;font-weight:560}
+.feat .unit{font-size:11px;color:var(--ink-3)}
+.feat .val{margin-left:auto;font-family:var(--mono);font-size:13px;font-weight:600;color:var(--accent-dark);background:var(--accent-soft);border-radius:6px;padding:1px 6px}
+.feat input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;cursor:pointer;margin:2px 0 0}
+.feat input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:99px;background:linear-gradient(90deg,var(--accent) var(--p,50%),#e6ece8 var(--p,50%))}
+.feat input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#fff;border:2.5px solid var(--accent);margin-top:-5px;box-shadow:0 1px 4px rgba(24,90,62,.3);transition:transform .12s}
+.feat input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.12)}
+.feat input[type=range]::-moz-range-track{height:4px;border-radius:99px;background:#e6ece8}
+.feat input[type=range]::-moz-range-progress{height:4px;border-radius:99px;background:var(--accent)}
+.feat input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:#fff;border:2.5px solid var(--accent)}
+.feat .hint{font-size:11px;color:var(--ink-3);margin-top:1px}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+.btn{font:inherit;font-size:13px;cursor:pointer;border-radius:10px;padding:8px 13px;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink-2);transition:.16s;white-space:nowrap}
+.btn:hover{border-color:var(--accent);color:var(--accent-dark);background:var(--accent-soft)}
+.btn.primary{background:linear-gradient(180deg,#37a878,#2f9e6f);color:#fff;border-color:#2b9166;box-shadow:0 8px 18px -12px rgba(47,158,111,.9)}
+.btn.primary:hover{filter:brightness(1.03);color:#fff}
+.btn.ghost{background:transparent}
+.btn-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px}
+.tabs{display:inline-flex;background:var(--bg-2);border-radius:11px;padding:3px;gap:2px}
+.tab{font:inherit;font-size:12.5px;border:0;background:transparent;cursor:pointer;color:var(--ink-2);padding:5px 11px;border-radius:8px;transition:.16s}
+.tab.on{background:var(--surface);color:var(--ink);box-shadow:var(--shadow-sm);font-weight:600}
+.verdict{display:flex;align-items:center;gap:16px;padding:4px 0 16px}
+.verdict .ring{width:74px;height:74px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:22px;font-weight:700;background:var(--accent-soft);color:var(--accent-dark);border:2px solid #cdeadd}
+.verdict h3{margin:0;font-size:26px;letter-spacing:-.02em;line-height:1.2}
+.verdict .m{font-size:12.5px;color:var(--ink-3);font-family:var(--mono);margin-top:3px}
+.bars{display:grid;gap:9px}
+.bar-row{display:grid;grid-template-columns:52px 1fr 50px;align-items:center;gap:10px}
+.bar-row .nm{font-size:12.5px;color:var(--ink-2)}
+.bar-track{height:9px;background:#eef2ef;border-radius:99px;overflow:hidden}
+.bar-fill{height:100%;border-radius:99px;transition:width .35s cubic-bezier(.3,.8,.3,1)}
+.bar-row .pc{font-family:var(--mono);font-size:12px;text-align:right;color:var(--ink-2)}
+.explain{margin-top:18px;border-top:1px dashed var(--line);padding-top:14px}
+.explain h4{margin:0 0 8px;font-size:12.5px;color:var(--ink-3);font-weight:600;letter-spacing:.04em}
+.path{display:flex;flex-wrap:wrap;gap:6px}
+.step{font-family:var(--mono);font-size:11.5px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:4px 8px;color:var(--ink-2)}
+.step b{color:var(--accent-dark);font-weight:600}
+.step.leaf{background:var(--accent-soft);border-color:#cdeadd;color:var(--accent-dark)}
+.contrib{display:grid;gap:6px}
+.contrib .c-row{display:grid;grid-template-columns:68px 1fr 60px;gap:8px;align-items:center;font-size:12px}
+.contrib .c-bar{height:6px;border-radius:99px;background:#eef2ef;position:relative;overflow:hidden}
+.contrib .c-bar i{position:absolute;top:0;bottom:0;left:50%;border-radius:99px}
+.contrib .c-val{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);text-align:right}
+.note{font-size:12px;color:var(--ink-3);margin:10px 0 0}
+.slider-inline{display:grid;grid-template-columns:1fr 132px;align-items:center;gap:10px;margin-top:16px}
+.slider-inline label{font-size:12.5px;color:var(--ink-2)}
+.slider-inline .v{font-family:var(--mono);font-size:12px;color:var(--accent-dark)}
+#strict{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:99px;background:#e6ece8;accent-color:var(--accent);cursor:pointer;margin:6px 0}
+#strict::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:#fff;border:2.5px solid var(--accent);box-shadow:0 1px 4px rgba(24,90,62,.3)}
+#strict::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:#fff;border:2.5px solid var(--accent)}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.metric{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow-sm)}
+.metric .k{font-size:12px;color:var(--ink-3)}
+.metric .v{font-size:23px;font-weight:660;letter-spacing:-.02em}
+.metric .s{font-size:11.5px;color:var(--ink-3);font-family:var(--mono)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.cm-wrap{display:grid;grid-template-columns:58px repeat(3,1fr);gap:6px;align-items:center}
+.cm-cell{border-radius:9px;padding:9px 4px;text-align:center;font-family:var(--mono);font-size:13px;font-weight:600;border:1px solid var(--line)}
+.cm-head{font-size:11.5px;color:var(--ink-3);text-align:center;font-family:inherit;font-weight:500}
+.cm-side{font-size:11.5px;color:var(--ink-3);text-align:right;padding-right:4px}
+.cm-cell.diag{border-color:#bfe4d1}
+.chart{width:100%;display:block}
+svg.chart{width:100%;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;font-size:12px;color:var(--ink-2)}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle}
+.imp{display:grid;gap:7px}
+.imp-row{display:grid;grid-template-columns:74px 1fr 46px;gap:9px;align-items:center;font-size:12px}
+.imp-bar{height:8px;background:#eef2ef;border-radius:99px;overflow:hidden}
+.imp-bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#45b183,#2f9e6f)}
+.imp-row.tree .imp-bar i{background:linear-gradient(90deg,#7fc4a4,#4a9d7b)}
+.imp-val{font-family:var(--mono);font-size:11px;color:var(--ink-3);text-align:right}
+.dist{display:flex;height:12px;border-radius:99px;overflow:hidden;margin:6px 0 12px}
+.dist i{display:block;height:100%}
+.dist-legend{display:flex;gap:16px;font-size:12px;color:var(--ink-2);flex-wrap:wrap}
+.dist-legend b{font-family:var(--mono)}
+.table-wrap{overflow-x:auto;border-top:1px solid var(--line)}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{padding:9px 10px;text-align:right;white-space:nowrap}
+th{font-weight:600;color:var(--ink-3);font-size:11.5px;background:var(--surface-2);border-bottom:1px solid var(--line)}
+td{border-bottom:1px solid #f1f6f3;color:var(--ink-2);font-family:var(--mono)}
+td:first-child,th:first-child{text-align:left}
+tbody tr:hover{background:#fafdfb}
+.pill{display:inline-block;padding:1px 9px;border-radius:999px;font-size:11.5px;font-family:inherit;font-weight:560;border:1px solid transparent}
+.pill.perfect{background:#e7f6ee;color:#227a55;border-color:#cdeadd}
+.pill.good{background:#fdf3e0;color:#9a6a12;border-color:#f2e2c1}
+.pill.bad{background:#fdeceb;color:#a83f37;border-color:#f5d3cf}
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+select{font:inherit;font-size:12.5px;padding:6px 10px;border-radius:9px;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink-2);cursor:pointer}
+.doc{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.doc h4{margin:0 0 8px;font-size:13.5px}
+.doc p,.doc li{font-size:13px;color:var(--ink-2)}
+.doc ul{margin:0;padding-left:18px}
+.doc li{margin-bottom:5px}
+.doc code{font-family:var(--mono);font-size:12px;background:var(--bg-2);padding:1px 5px;border-radius:5px;color:var(--accent-dark)}
+.formula{font-family:var(--mono);font-size:12.5px;background:var(--surface-2);border:1px dashed var(--line-strong);border-radius:10px;padding:10px 12px;color:var(--ink-2);margin:8px 0;overflow-x:auto}
+footer{border-top:1px solid var(--line);margin-top:30px;padding:24px 0 40px;color:var(--ink-3);font-size:12.5px}
+footer .wrap{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+/* ---------- 照片识别 ---------- */
+.photo-card{margin-bottom:16px}
+.photo-grid{display:grid;grid-template-columns:290px 1fr;gap:16px;align-items:start}
+.dropzone{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;min-height:196px;border:1.5px dashed var(--line-strong);border-radius:14px;background:var(--surface-2);cursor:pointer;padding:18px;text-align:center;transition:.18s}
+.dropzone:hover,.dropzone.over{border-color:var(--accent);background:var(--accent-soft)}
+.dz-icon{font-size:26px;line-height:1}
+.dz-title{font-size:13.5px;font-weight:560;color:var(--ink)}
+.dz-sub{font-size:11.5px;color:var(--ink-3);line-height:1.55}
+.photo-view{position:relative;min-height:196px;border-radius:14px;background:var(--surface-2);border:1px solid var(--line);display:grid;place-items:center;overflow:hidden;padding:6px}
+#stage{max-width:100%;max-height:320px;display:none;border-radius:10px}
+.photo-empty{position:absolute;color:var(--ink-3);font-size:12.5px}
+.pm{display:grid;grid-template-columns:repeat(2,1fr);gap:6px 14px;margin-top:14px}
+.pm-row{display:grid;grid-template-columns:80px 1fr auto;gap:8px;align-items:center;font-size:12.5px;padding:5px 9px;border-radius:9px;background:var(--surface-2);border:1px solid var(--line)}
+.pm-row .pm-name{color:var(--ink-2)}
+.pm-val{font-family:var(--mono);font-size:12.5px;color:var(--ink);text-align:right}
+.pm-val small{color:var(--ink-3);font-size:10.5px;font-family:inherit}
+.badge-auto,.badge-est{font-size:10.5px;padding:1px 7px;border-radius:999px;white-space:nowrap;justify-self:end}
+.badge-auto{background:#e7f6ee;color:#227a55;border:1px solid #cdeadd}
+.badge-est{background:#fdf3e0;color:#9a6a12;border:1px solid #f2e2c1}
+.warn{font-size:12px;color:#8a6a12;background:#fdf6e6;border:1px solid #f3e6c8;border-radius:10px;padding:8px 11px;margin-top:12px;line-height:1.55}
+.err{font-size:12.5px;color:#a83f37;background:#fdeceb;border:1px solid #f5d3cf;border-radius:10px;padding:9px 12px;margin-top:12px}
+/* ---------- 检测记录 ---------- */
+.rec-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px}
+.rec-stat{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.rec-stat .k{font-size:11.5px;color:var(--ink-3)}
+.rec-stat .v{font-size:19px;font-weight:650;letter-spacing:-.02em;line-height:1.3}
+.rec-stat .v small{font-size:11px;color:var(--ink-3);font-weight:500;margin-left:2px}
+.rec-thumb{text-align:center;padding:5px 6px}
+.rec-thumb img{width:44px;height:44px;border-radius:9px;object-fit:cover;display:block;margin:0 auto;border:1px solid var(--line);background:var(--bg-2)}
+.rec-thumb .ph{width:44px;height:44px;border-radius:9px;display:grid;place-items:center;margin:0 auto;background:var(--bg-2);border:1px dashed var(--line-strong);color:var(--ink-3);font-size:15px}
+.linkbtn{font:inherit;font-size:11.5px;background:none;border:0;color:var(--accent-dark);cursor:pointer;padding:2px 5px;border-radius:6px;white-space:nowrap}
+.linkbtn:hover{background:var(--accent-soft)}
+.linkbtn.del{color:#a83f37}
+.linkbtn.del:hover{background:#fdeceb}
+.rec-empty{padding:28px 10px;text-align:center;color:var(--ink-3);font-size:13px;font-family:inherit;white-space:normal}
+/* ---------- 三步翻页 ---------- */
+.stepper{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.step-btn{font:inherit;font-size:13px;display:flex;align-items:center;gap:8px;cursor:pointer;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px 14px;color:var(--ink-2);transition:.16s}
+.step-btn i{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:11.5px;font-weight:600;background:var(--bg-2);color:var(--ink-3)}
+.step-btn:hover{border-color:var(--accent);color:var(--accent-dark)}
+.step-btn.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-dark);font-weight:600;box-shadow:var(--shadow-sm)}
+.step-btn.on i{background:var(--accent);color:#fff}
+.step-bar{flex:1;min-width:14px;height:1px;background:var(--line-strong)}
+.panel{animation:fade .22s ease}
+@keyframes fade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+.pager{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:16px}
+.pager-info{font-size:12.5px;color:var(--ink-3);font-family:var(--mono)}
+.pager .btn[disabled]{opacity:.38;cursor:not-allowed}
+.pager .btn[disabled]:hover{border-color:var(--line-strong);color:var(--ink-2);background:var(--surface)}
+@media (max-width:940px){.grid-detect,.grid-2,.doc{grid-template-columns:1fr}.stats,.metrics{grid-template-columns:repeat(2,1fr)}.photo-grid{grid-template-columns:1fr}.rec-stats{grid-template-columns:repeat(2,1fr)}.step-btn span{display:none}.step-btn{padding:8px 11px}}
+@media (max-width:620px){.feats{grid-template-columns:1fr}.nav{display:none}.hero{padding-top:34px}.cm-wrap{grid-template-columns:46px repeat(3,1fr)}}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <div class="brand"><span class="dot">🍎</span> 苹果品质检测 · 实验台</div>
+    <nav class="nav">
+      <a href="#detect">单果检测</a>
+      <a href="#records">检测记录</a>
+      <a href="#evaluate">模型评估</a>
+      <a href="#dataset">样本数据</a>
+      <a href="#doc">方法与微调</a>
+    </nav>
+    <span class="badge-src">单文件 · 离线可用</span>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="hero">
+    <h1>这颗苹果，<em>好不好</em>？</h1>
+    <p class="lead">
+      把一颗苹果量化为 10 维特征向量，交给两个从《机器学习》（周志华）里走出来的模型判断：
+      第 3 章的 <b>Softmax 线性模型</b>，第 4 章的 <b>CART 决策树</b>。
+      它们的表现由第 2 章的 <b>交叉验证与混淆矩阵</b> 来裁决。
+    </p>
+    <div class="hero-tags">
+      <span class="tag">样本 <b>900</b> 份</span>
+      <span class="tag">三类：完美 / 良好 / 不好</span>
+      <span class="tag">特征 <b>10</b> 维理化与外观指标</span>
+      <span class="tag">浏览器内实时推理 · 无需联网</span>
+    </div>
+    <div class="stats" id="heroStats"></div>
+  </section>
+
+  <section id="detect">
+    <div class="sec-head">
+      <h2><span class="num">01</span>单果检测</h2>
+      <span class="sub">三步走完一次检测：放照片 → 调指标 → 看结论</span>
+    </div>
+
+    <div class="stepper" id="stepper">
+      <button class="step-btn on" data-step="0"><i>1</i><span>单果检测</span></button>
+      <span class="step-bar"></span>
+      <button class="step-btn" data-step="1"><i>2</i><span>果实指标</span></button>
+      <span class="step-bar"></span>
+      <button class="step-btn" data-step="2"><i>3</i><span>判定结果</span></button>
+    </div>
+
+    <div class="panel" data-panel="0">
+    <div class="card photo-card">
+      <div class="card-head">
+        <h3>第 1 步 · 放入一颗苹果</h3>
+        <span class="hint">纯本地计算，图片不会上传任何服务器</span>
+      </div>
+      <div class="card-body">
+        <div class="photo-grid">
+          <label class="dropzone" id="dropzone">
+            <input type="file" id="fileInput" accept="image/*" hidden>
+            <div class="dz-icon">📷</div>
+            <div class="dz-title">点击选择 / 拖拽照片 / Ctrl+V 粘贴</div>
+            <div class="dz-sub">单果、背景干净效果最好<br>JPG · PNG · WebP</div>
+          </label>
+          <div class="photo-view">
+            <canvas id="stage"></canvas>
+            <div class="photo-empty" id="photoEmpty">还没有照片，先丢一张进来</div>
+          </div>
+        </div>
+
+        <div class="btns" style="margin-top:14px">
+          <button class="btn primary" id="btnSample">没有照片？用示例图演示</button>
+          <button class="btn" id="btnClear">清除照片</button>
+        </div>
+
+        <div id="photoMetrics"></div>
+        <p class="warn">照片只能测「看得见的外在品质」。硬度、糖度、酸度、失水率无法从单张照片测出，
+          页面会用外观特征做弱相关推算（标为「图像推算」），你可以手动拖动滑杆修正。
+          另外：模型是用合成数据训练的，与真实照片存在分布差异，此处结果用于演示流程。</p>
+        <p class="note">没有照片也没关系：点「下一步」直接手填 10 项指标，推理逻辑完全一样。</p>
+      </div>
+    </div>
+    </div>
+
+    <div class="panel" data-panel="1" hidden>
+      <div class="card">
+        <div class="card-head">
+          <h3>第 2 步 · 果实指标</h3>
+          <span class="hint">单位与量纲已按分级标准对齐</span>
+        </div>
+        <div class="card-body">
+          <p class="note" id="featSource" style="display:none;margin-bottom:14px"></p>
+          <div class="feats" id="feats"></div>
+          <div class="btns" style="margin-top:20px">
+            <button class="btn primary" id="btnRandom">随机抽一颗</button>
+            <button class="btn" data-preset="0"><span class="btn-dot" style="background:#2f9e6f"></span>完美样本</button>
+            <button class="btn" data-preset="1"><span class="btn-dot" style="background:#d99a2b"></span>良好样本</button>
+            <button class="btn" data-preset="2"><span class="btn-dot" style="background:#d9695f"></span>不好样本</button>
+            <button class="btn ghost" id="btnMean">取训练集均值</button>
+          </div>
+          <div class="slider-inline">
+            <label for="strict">判定严格度 <span style="color:#8a9a91">（阈值移动：往「不好」偏或往「完美」偏）</span></label>
+            <div>
+              <input type="range" id="strict" min="-100" max="100" value="0">
+              <div class="v" id="strictVal" style="text-align:right">0.00</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" data-panel="2" hidden>
+      <div class="card">
+        <div class="card-head">
+          <h3>第 3 步 · 判定结果</h3>
+          <div class="tabs" id="modelTabs" style="margin-left:auto">
+            <button class="tab on" data-model="linear">线性模型</button>
+            <button class="tab" data-model="tree">决策树</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="verdict">
+            <div class="ring" id="ring">—</div>
+            <div>
+              <h3 id="verdictName">等待输入</h3>
+              <div class="m" id="verdictMeta">p = —</div>
+            </div>
+          </div>
+          <div class="bars" id="bars"></div>
+          <div class="explain" id="explain"></div>
+          <p class="note" id="agreeNote"></p>
+          <div class="btns" style="margin-top:14px">
+            <button class="btn primary" id="btnSaveRec">记录当前结果</button>
+            <span style="font-size:11.5px;color:#8a9a91;align-self:center" id="saveHint"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pager">
+      <button class="btn" id="btnPrev">← 上一步</button>
+      <span class="pager-info" id="pagerInfo">第 1 / 3 步</span>
+      <button class="btn primary" id="btnNext">下一步 →</button>
+    </div>
+  </section>
+
+  <section id="records">
+    <div class="sec-head">
+      <h2><span class="num">02</span>检测记录</h2>
+      <span class="sub">自动存在本机浏览器里，关掉网页也不会丢</span>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h3>历史记录</h3>
+        <span class="hint" id="recCount">—</span>
+      </div>
+      <div class="card-body" style="padding-bottom:10px">
+        <div class="rec-stats" id="recStats"></div>
+        <div class="toolbar" style="margin-bottom:4px">
+          <select id="recFilter">
+            <option value="-1">全部类别</option>
+            <option value="0">只看完美</option>
+            <option value="1">只看良好</option>
+            <option value="2">只看不好</option>
+          </select>
+          <button class="btn primary" id="btnExportJson">导出备份（.json）</button>
+          <button class="btn" id="btnImportJson">导入备份</button>
+          <input type="file" id="importFile" accept=".json,application/json" hidden>
+          <button class="btn" id="btnExport">导出 CSV</button>
+          <button class="btn" id="btnClearRec">清空记录</button>
+        </div>
+        <p class="note" style="margin:2px 0 6px">
+          换浏览器、换电脑、或者用手机看？点「导出备份」拿到一个 .json 文件，在新环境里点「导入备份」选它，记录（含缩略图）就搬过去了。
+          点「载入」可把当时的参数放回检测区复现 · 最多保留 200 条。
+        </p>
+        <div class="err" id="recWarn" style="display:none">
+          当前浏览器不允许本地存储（file:// 有时会受限），记录只在本页打开期间有效。
+          <b>请用「导出备份」把记录存成 .json 文件带走</b>，下次「导入备份」即可恢复。
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>图片</th><th>时间</th><th>来源</th><th>判定</th><th>置信度</th>
+            <th>果径 mm</th><th>着色</th><th>缺陷 %</th><th>虫孔</th><th>操作</th>
+          </tr></thead>
+          <tbody id="recBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="evaluate">
+    <div class="sec-head">
+      <h2><span class="num">03</span>模型评估与选择</h2>
+      <span class="sub">5 折分层交叉验证 · 混淆矩阵 · 学习曲线（第 2 章）</span>
+    </div>
+
+    <div class="metrics" id="metrics"></div>
+
+    <div class="grid-2" style="margin-bottom:16px">
+      <div class="card">
+        <div class="card-head"><h3>Softmax 线性模型 · 混淆矩阵</h3><span class="hint">行=真实，列=预测</span></div>
+        <div class="card-body" id="cmLinear"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>CART 决策树 · 混淆矩阵</h3><span class="hint">行=真实，列=预测</span></div>
+        <div class="card-body" id="cmTree"></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-head">
+        <h3>学习曲线：训练集规模 vs 准确率</h3>
+        <span class="hint">训练/测试曲线间距 = 过拟合程度</span>
+      </div>
+      <div class="card-body">
+        <div class="chart" id="lcChart"></div>
+        <div class="legend">
+          <span><i style="background:#2f9e6f"></i>线性·训练</span>
+          <span><i style="background:#2f9e6f;opacity:.35"></i>线性·测试</span>
+          <span><i style="background:#d99a2b"></i>决策树·训练</span>
+          <span><i style="background:#d99a2b;opacity:.35"></i>决策树·测试</span>
+          <span style="color:#8a9a91">虚线 = 留出测试集（20%）</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head"><h3>特征重要性 · 线性模型</h3><span class="hint">平均 |w| 归一化</span></div>
+        <div class="card-body"><div class="imp" id="impLinear"></div></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>特征重要性 · 决策树</h3><span class="hint">基尼不纯度下降加权</span></div>
+        <div class="card-body"><div class="imp" id="impTree"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="dataset">
+    <div class="sec-head">
+      <h2><span class="num">04</span>样本数据</h2>
+      <span class="sub" id="dataSub">900 份样本 · 含标注噪声</span>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-head">
+        <h3>特征分布</h3>
+        <div style="margin-left:auto"><select id="histFeature"></select></div>
+      </div>
+      <div class="card-body">
+        <div class="dist" id="distBar"></div>
+        <div class="dist-legend" id="distLegend"></div>
+        <div class="chart" id="histChart" style="margin-top:14px"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h3>样本表</h3>
+        <span class="hint">标签为「真实等级 + 标注噪声」后的结果</span>
+      </div>
+      <div class="card-body" style="padding-bottom:6px">
+        <div class="toolbar">
+          <select id="filterClass">
+            <option value="-1">全部类别</option>
+            <option value="0">完美</option>
+            <option value="1">良好</option>
+            <option value="2">不好</option>
+          </select>
+          <button class="btn" id="btnShuffle">换一批</button>
+          <span style="font-size:12px;color:#8a9a91" id="tableCount"></span>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr id="tableHead"></tr></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="doc">
+    <div class="sec-head">
+      <h2><span class="num">05</span>方法与微调</h2>
+      <span class="sub">每个数字都能追溯到公式</span>
+    </div>
+
+    <div class="doc">
+      <div class="card"><div class="card-body">
+        <h4>三个章节，一条流水线</h4>
+        <ul>
+          <li><b>第 3 章 线性模型</b>：Softmax 回归对 10 维特征线性打分，输出三类概率。</li>
+          <li><b>第 4 章 决策树</b>：CART 以基尼指数最小化划分，产出可读的「若…则…」路径。</li>
+          <li><b>第 2 章 评估</b>：分层 5 折交叉验证估泛化误差，混淆矩阵拆解错误，学习曲线判断偏差/方差。</li>
+        </ul>
+        <div class="formula">p(y=c|x) = exp(w_c·x + b_c) / Σ_j exp(w_j·x + b_j)</div>
+        <div class="formula">Gini(D) = 1 − Σ_k p_k²　；　Gini_index(D,a) = Σ_v |D^v|/|D| · Gini(D^v)</div>
+        <p style="margin-top:10px">「判定严格度」只改三个类别的偏置 <code>b_c</code>，等价于第 2.3 节的
+        <b>阈值移动</b>：不重训就能改变查准率与查全率的平衡点。</p>
+        <p style="margin-top:8px">为什么决策树输给线性模型？这批样本由「线性潜因子 + 高斯噪声」生成，真实边界是<b>斜平面</b>；
+        CART 只能做轴平行的阶梯切分，深度一限就逼近不了。这是第 2 章「没有免费的午餐」与第 3 章「归纳偏好」的现场版。</p>
+      </div></div>
+
+      <div class="card"><div class="card-body">
+        <h4>微调空间</h4>
+        <ul>
+          <li>本文件是<b>自包含</b>的：样本、权重、样式、逻辑全在一个 HTML 里，改数字直接在文件里改。</li>
+          <li>脚本区第一段 <code>window.APPLE_SAMPLES</code> 是 900 条样本，<code>window.APPLE_MODELS</code> 是模型权重与评估指标，均为可读 JSON。</li>
+          <li>判定偏置强度、置信度文案阈值、直方图分箱数、表格行数集中在 JS 顶部的 <code>TUNE</code>。</li>
+          <li>主题色改 <code>:root</code> 里 4 个变量即可换气质。</li>
+          <li>想换数据重训：用同目录的 <code>rebuild.py</code>（可选，删掉也不影响本页打开）。</li>
+        </ul>
+        <h4 style="margin-top:14px">照片是怎么变成数字的</h4>
+        <ul>
+          <li>取图像 2px 边框环的 RGB 中位数当背景色，色差 &gt; 74 或明显偏红 → 判为前景；3×3 多数滤波去噪。</li>
+          <li>最大连通域即果实；从画布边界灌水，剩余的非果实像素就是果面凹陷、病斑、虫孔。</li>
+          <li>HSV 阈值统计红占比（着色度）、锈斑占比（光洁度）、暗色像素与洞面积（缺陷率）。</li>
+          <li>能测 6 项，硬度、糖度、酸度、失水率测不出，用外观弱相关推算并标注「图像推算」。</li>
+        </ul>
+        <h4 style="margin-top:14px">数据来源（诚实说明）</h4>
+        <p>公开网络没有「900 条带人工等级标注的苹果理化指标」可直接抓取，因此样本由
+        「类别条件分布 + 共同潜在因子 + 5% 标注噪声」合成，区间锚定 GB/T 10651《鲜苹果》分级要求
+        与 NY/T 1075《红富士苹果》理化指标。<b>仅用于算法教学与演示，不能替代真实分选线检测。</b></p>
+      </div></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>🍎 苹果品质检测实验台</span>
+    <span>·</span>
+    <span>知识依托：周志华《机器学习》第 2、3、4 章</span>
+    <span>·</span>
+    <span id="footMeta">单文件版</span>
+    <span>·</span>
+    <a href="#doc" style="color:#227a55;text-decoration:none;border-bottom:1px dashed #bfe4d1">方法与微调</a>
+  </div>
+</footer>
+
+<script id="apple-data">
+/* ==DATA:START== 由 rebuild.py 自动生成，请勿手改 == */
+window.APPLE_META = {"trained_at": "2026-11-03 10:59:06", "n_samples": 900, "n_features": 10, "keys": ["weight", "diameter", "color", "smooth", "firmness", "brix", "acidity", "defect", "pest", "waterloss"], "classes": ["perfect", "good", "bad"], "k_folds": 5, "baseline_accuracy": 0.3456, "tree_depth": 6, "tree_nodes": 33, "strictness_bias": 1.2, "label_noise": 0.05, "counts": {"perfect": 295, "good": 311, "bad": 294}};
+window.APPLE_FEATURES = [{"key": "weight", "name": "单果重", "unit": "g", "min": 120, "max": 340, "dec": 0, "step": 2, "hint": "过低多为未充分膨大或早采"}, {"key": "diameter", "name": "果径", "unit": "mm", "min": 58, "max": 92, "dec": 1, "step": 0.5, "hint": "横径，分级的第一道硬指标"}, {"key": "color", "name": "着色度", "unit": "分", "min": 0, "max": 100, "dec": 0, "step": 1, "hint": "红色覆盖与均匀度综合评分"}, {"key": "smooth", "name": "果面光洁度", "unit": "分", "min": 0, "max": 100, "dec": 0, "step": 1, "hint": "锈斑、药斑、果锈的综合评分"}, {"key": "firmness", "name": "硬度", "unit": "N", "min": 4.5, "max": 13.5, "dec": 2, "step": 0.1, "hint": "去皮穿刺值，偏低表示发绵"}, {"key": "brix", "name": "糖度", "unit": "°Bx", "min": 8.0, "max": 19.5, "dec": 1, "step": 0.1, "hint": "可溶性固形物，越高越甜"}, {"key": "acidity", "name": "酸度", "unit": "%", "min": 0.12, "max": 0.95, "dec": 2, "step": 0.01, "hint": "可滴定酸，过高口感偏酸"}, {"key": "defect", "name": "缺陷面积", "unit": "%", "min": 0, "max": 32, "dec": 1, "step": 0.5, "hint": "碰压伤、日灼、病斑占比"}, {"key": "pest", "name": "虫孔数", "unit": "个", "min": 0, "max": 8, "dec": 0, "step": 1, "hint": "蛀果虫孔，直接否决项"}, {"key": "waterloss", "name": "失水率", "unit": "%", "min": 0.8, "max": 12.0, "dec": 1, "step": 0.1, "hint": "贮运失水，偏高说明不新鲜"}];
+window.APPLE_CLASSES = [{"key": "perfect", "name": "完美", "desc": "可直接进精品果渠道", "color": "#2f9e6f"}, {"key": "good", "name": "良好", "desc": "可进商超常规货架", "color": "#d99a2b"}, {"key": "bad", "name": "不好", "desc": "建议加工或降级处理", "color": "#d9695f"}];
+window.APPLE_KEYS = ["weight", "diameter", "color", "smooth", "firmness", "brix", "acidity", "defect", "pest", "waterloss"];
+/* 每条样本：[编号, 10 个特征值..., 类别下标 0=完美 1=良好 2=不好] */
+window.APPLE_SAMPLES = [
+["A0001",210,79.9,59,65,8.53,14,0.29,9,0,3.9,1],
+["A0002",262,69.5,80,81,8.92,12.8,0.43,7.9,0,4.4,1],
+["A0003",243,78.3,83,97,11.23,14.6,0.34,0.4,0,4.1,0],
+["A0004",259,73.3,60,47,10.05,13.4,0.36,6,0,8.4,1],
+["A0005",202,67.6,33,45,8.18,12.9,0.6,18.7,2,9.7,2],
+["A0006",201,72.8,62,58,8.29,11.8,0.37,10.6,2,6.4,1],
+["A0007",259,85,84,100,12.37,15.3,0.2,2,0,3,0],
+["A0008",230,65.2,45,58,8.23,12.1,0.37,11.9,2,6.6,1],
+["A0009",246,76.3,78,63,8.66,14.3,0.48,4.9,0,3.3,1],
+["A0010",195,74.7,84,87,8.35,13.6,0.26,2.6,1,5.8,1],
+["A0011",215,66.4,39,26,4.5,8.5,0.55,21.6,1,10.9,2],
+["A0012",127,65.1,43,18,5.58,9.5,0.53,17.8,3,11.2,2],
+["A0013",237,66.7,69,72,8.88,12.5,0.57,13.8,0,6.7,1],
+["A0014",251,80.7,40,57,7.45,12.9,0.82,16,0,7,2],
+["A0015",203,79.2,76,51,6.83,12.4,0.37,11.8,0,6.1,0],
+["A0016",152,63.4,33,42,6.34,9.5,0.46,29.5,0,12,2],
+["A0017",206,75.9,69,74,9.35,11.9,0.31,7,3,5.7,1],
+["A0018",223,80.7,93,90,11.89,16.6,0.26,0.9,1,3.3,0],
+["A0019",203,63.1,26,43,7.34,10.6,0.7,32,6,6.2,2],
+["A0020",221,78.8,75,65,10.04,12.2,0.29,9.2,2,4.6,1],
+["A0021",185,60.2,47,33,7.77,10.2,0.65,15.8,3,8.1,2],
+["A0022",181,70.6,79,70,9.51,13.1,0.48,15,1,7.6,1],
+["A0023",248,69.4,44,51,7.11,12.3,0.5,11.2,0,7.9,2],
+["A0024",274,90.8,86,81,11.1,15.7,0.33,0.1,0,1.7,0],
+["A0025",207,70.7,80,72,6.49,14.1,0.32,1.8,1,8.4,1],
+["A0026",152,74.7,50,52,6,12.5,0.73,22.5,4,10.5,2],
+["A0027",227,79.9,88,89,10.88,16.5,0.37,1.9,0,1.9,0],
+["A0028",197,73.1,49,68,11.72,12.8,0.39,6.8,2,4.1,1],
+["A0029",260,84.6,87,85,12.24,15.6,0.29,1.9,0,4.1,0],
+["A0030",204,70.6,63,72,8.42,14.7,0.59,9.5,2,5,1],
+["A0031",233,85.1,88,82,11.26,15.8,0.39,2,0,4.6,0],
+["A0032",237,80.8,87,82,10.13,17,0.42,2.7,1,2.7,0],
+["A0033",244,79.2,85,85,10.83,16.3,0.31,2.7,0,2.5,0],
+["A0034",161,64.6,48,55,7.15,9.9,0.44,20,0,10.9,1],
+["A0035",226,79.8,81,86,11.17,15.6,0.51,8.6,1,6.7,1],
+["A0036",237,74.2,77,91,10.2,15.8,0.15,3.7,1,2.7,0],
+["A0037",180,71.5,54,72,8.79,12.2,0.73,11,2,5,1],
+["A0038",165,74.2,48,60,6.28,8.2,0.55,15.2,0,8.2,2],
+["A0039",264,65.2,59,53,9.16,12.2,0.48,18.5,0,7.8,2],
+["A0040",185,77.9,74,64,9.03,11.4,0.34,3.9,1,8.9,1],
+["A0041",191,76.6,61,68,8.75,13.8,0.39,15,2,7.2,1],
+["A0042",240,73.2,100,74,8.19,14.5,0.42,0,1,2.6,1],
+["A0043",272,82.3,89,86,10.49,17.1,0.39,0,0,1.5,0],
+["A0044",120,63,32,22,4.67,8,0.69,32,3,12,2],
+["A0045",254,80.1,80,81,10.15,15.3,0.26,3.6,0,4.7,1],
+["A0046",164,70.2,46,54,5.52,10.5,0.43,23.5,4,11.2,2],
+["A0047",134,64.1,53,54,5.67,9.5,0.58,18.6,3,8.2,2],
+["A0048",212,81.1,66,90,8.79,13.6,0.33,9.4,0,7,1],
+["A0049",191,76.7,68,66,6.39,14,0.34,8.2,2,7.3,1],
+["A0050",268,88.2,100,89,11.75,15.9,0.33,0,0,3.5,0],
+["A0051",240,80.7,96,91,12.98,18.6,0.37,1.5,0,2.2,0],
+["A0052",255,80.7,86,80,9.53,19.1,0.41,3.6,0,2.8,0],
+["A0053",247,80.9,85,91,10.14,17,0.38,3.5,0,3.6,0],
+["A0054",253,78.1,87,83,10.28,14.8,0.35,1.9,0,2.6,0],
+["A0055",252,85.3,88,88,11.53,16.9,0.29,0,0,3.7,0],
+["A0056",221,82.4,81,62,9.8,13,0.54,8.7,0,5.6,1],
+["A0057",278,81.5,91,98,12.63,18.3,0.33,2.2,0,1.6,0],
+["A0058",227,80.3,82,87,10.84,16.1,0.38,0.5,0,3.2,0],
+["A0059",159,74.1,39,33,5.75,12.6,0.75,24.1,3,6.4,2],
+["A0060",232,82.5,86,75,9.39,12.6,0.39,8.5,2,6.5,1],
+["A0061",219,79.8,89,89,11.44,14.7,0.32,2.5,0,3.5,0],
+["A0062",144,78.3,54,62,8.91,11.7,0.65,8.9,6,8.9,2],
+["A0063",271,82.7,86,85,11.84,15.9,0.31,2.1,0,2.9,0],
+["A0064",224,85.9,100,92,13.5,16.7,0.16,0.8,0,3.3,1],
+["A0065",124,58,24,44,7.32,9.3,0.53,25.9,4,10.7,2],
+["A0066",226,76,78,83,10.52,12.9,0.25,10.4,0,5.5,1],
+["A0067",281,88.4,95,93,13.5,17.9,0.28,1.7,0,1.7,0],
+["A0068",131,62.9,61,41,6.49,11.2,0.74,2.8,1,11.6,2],
+["A0069",205,82.5,92,81,12.17,16.2,0.3,0,0,4,0],
+["A0070",231,80.9,100,90,10.96,16.5,0.33,2,0,3,0],
+["A0071",168,78.1,82,96,7.26,16.1,0.36,1,0,5.8,1],
+["A0072",228,87,94,94,11.71,18.1,0.31,0.5,0,2.2,0],
+["A0073",157,77.7,58,49,10.22,11.5,0.43,10.7,0,8,1],
+["A0074",256,80.6,81,95,11.23,15.7,0.37,2.8,0,3.4,0],
+["A0075",231,84.9,95,92,12.11,17.1,0.25,2.4,0,2.1,0],
+["A0076",194,64.4,42,54,6.35,12.5,0.44,10.4,3,1.2,2],
+["A0077",176,73.9,53,67,8.79,13.4,0.53,7,0,8.8,2],
+["A0078",207,64.4,43,41,5.77,9.2,0.56,14.3,4,12,2],
+["A0079",211,88,88,96,12.62,15,0.27,0.2,1,3.6,0],
+["A0080",216,82.8,96,85,10.25,15.9,0.18,0.7,0,2.1,0],
+["A0081",247,85.1,95,83,11.22,16.3,0.31,2.3,0,1.7,0],
+["A0082",264,87.7,92,100,13.38,18.2,0.22,1,0,1.5,0],
+["A0083",207,73.9,54,72,10.49,8.8,0.43,16.8,3,9.1,2],
+["A0084",239,85.9,80,53,10.82,14.2,0.55,5.3,1,6.9,1],
+["A0085",172,71.5,53,54,5.32,12.6,0.69,12.6,1,9.8,2],
+["A0086",171,69.8,50,43,5.82,8,0.76,15.1,3,8.1,2],
+["A0087",247,63.8,31,56,6.9,8,0.5,25.8,0,7.7,2],
+["A0088",215,77.9,76,82,9.57,15.5,0.49,4.1,0,3.3,1],
+["A0089",191,75.3,55,71,8.47,14.5,0.41,4.4,2,4.9,1],
+["A0090",216,78.5,61,60,5.55,14.7,0.32,1.7,0,4.1,1],
+["A0091",153,62.5,58,37,7.88,8.2,0.44,22.9,5,8.9,2],
+["A0092",234,84.1,94,90,12.07,17.3,0.35,2,0,2.1,0],
+["A0093",217,72.8,37,54,5.36,8,0.62,21.2,5,5.5,2],
+["A0094",245,86.4,85,98,11.34,17.6,0.36,0.9,0,4,0],
+["A0095",219,74.9,87,84,9.33,15.1,0.32,0,0,7.1,1],
+["A0096",217,85.1,69,56,8.7,13.6,0.35,12.6,0,6.1,1],
+["A0097",235,82.2,74,90,8.91,14.6,0.42,2.4,0,2.1,0],
+["A0098",173,60.5,28,35,6.52,10.1,0.79,16,7,12,2],
+["A0099",198,58,65,24,6.09,11.1,0.6,29.8,7,9.9,2],
+["A0100",164,71.2,54,38,4.5,10.1,0.82,15.5,2,11.6,2],
+["A0101",268,87.2,83,89,12.31,16,0.27,1.2,0,3.5,0],
+["A0102",214,76.8,23,61,7.23,8,0.47,13.1,3,9.3,1],
+["A0103",217,65.4,48,77,7.27,9,0.55,32,2,7.8,2],
+["A0104",287,85.9,92,93,10.46,16,0.37,2.9,0,2.6,0],
+["A0105",216,82,91,77,10.06,14.6,0.35,1.3,0,1.8,0],
+["A0106",213,68.6,71,75,9.09,14.3,0.47,10,1,5.1,1],
+["A0107",120,58,64,48,4.5,8.9,0.44,17,6,12,2],
+["A0108",255,82.6,91,84,11.72,15.9,0.46,2.8,0,2.3,1],
+["A0109",224,84.1,75,83,9.69,13.6,0.35,3.7,0,3.5,0],
+["A0110",199,68.7,44,58,7.55,11.4,0.95,14.9,4,12,2],
+["A0111",244,74.3,79,72,8.61,14.6,0.53,9.3,1,4.8,1],
+["A0112",230,80.9,71,64,7.72,14.5,0.45,7.8,0,6.4,1],
+["A0113",120,58,69,68,7.85,14,0.41,22.1,0,5.5,2],
+["A0114",168,65.7,38,30,8.08,11.6,0.63,11.2,1,9.5,2],
+["A0115",232,63,15,41,5.35,10.2,0.35,19.9,4,9.6,2],
+["A0116",209,63.6,47,40,6.38,12.2,0.43,16,3,10.6,1],
+["A0117",232,82,84,87,11.51,16.8,0.34,2.7,0,2.6,0],
+["A0118",255,82,89,90,11.88,17.3,0.33,1.7,0,1.2,0],
+["A0119",168,78.1,37,32,5.72,10.6,0.67,23.2,3,7.8,2],
+["A0120",202,80.7,65,86,8.08,16.5,0.34,13.1,1,8.4,1],
+["A0121",211,77.6,81,60,10.06,13.2,0.76,3.6,0,5,1],
+["A0122",274,84.6,95,90,11.82,17.4,0.26,1,0,3.3,0],
+["A0123",196,87.7,68,66,7.01,13.8,0.41,10.4,2,5.8,1],
+["A0124",260,78.5,85,89,10.56,15.6,0.49,0.7,0,4.9,0],
+["A0125",248,79.7,59,51,9.42,10.7,0.45,6.9,1,4.1,1],
+["A0126",193,79.7,71,54,9.13,15.4,0.52,7.4,2,5.8,1],
+["A0127",242,77.1,83,90,12.37,17.2,0.25,3.1,0,2,0],
+["A0128",237,80.1,84,81,11.93,17.8,0.27,0.4,0,4.4,0],
+["A0129",257,81.5,85,83,12.62,15.4,0.26,0.1,0,3.1,0],
+["A0130",188,75.6,66,53,6.98,12.7,0.49,2.2,2,2.9,1],
+["A0131",260,89.7,100,90,10.75,18.1,0.31,0.2,0,1.9,0],
+["A0132",222,77.4,87,81,7.91,11.7,0.26,6.3,1,4.5,1],
+["A0133",178,66.7,35,65,5.69,8,0.74,24.6,0,7.7,2],
+["A0134",227,77.1,74,72,10.5,15.5,0.53,4.8,1,6.3,1],
+["A0135",235,88.1,84,95,10.81,17.2,0.24,0,0,2.1,0],
+["A0136",263,74.3,77,67,10.61,15.1,0.58,10.1,1,2.5,1],
+["A0137",232,79.1,48,68,8.58,12.2,0.74,8.9,0,8.1,2],
+["A0138",276,82,82,100,11.5,17.3,0.43,1.2,1,2.5,1],
+["A0139",205,73.1,66,82,9.97,16,0.45,5.5,0,4.1,1],
+["A0140",247,84.2,90,84,12.66,16.9,0.37,1.1,0,2,0],
+["A0141",223,75.6,41,47,4.5,10.7,0.68,9.9,4,8.9,2],
+["A0142",177,65,52,56,5.21,10.8,0.63,27.1,4,8.3,2],
+["A0143",246,84.3,88,97,9.85,15.9,0.43,0.9,0,1.3,0],
+["A0144",268,86.4,81,91,11.01,16.3,0.33,2.3,0,2.7,0],
+["A0145",206,78.7,73,76,12.6,15.7,0.37,3.7,0,3.5,0],
+["A0146",248,77.9,81,88,9.85,16.4,0.31,2.1,0,1.8,0],
+["A0147",202,78.8,90,83,9.19,14.8,0.65,9.6,0,3.4,1],
+["A0148",200,80.9,85,83,10.87,14.4,0.3,1.5,0,2.3,0],
+["A0149",173,64.3,65,84,5.87,13.5,0.7,14.1,4,8.8,2],
+["A0150",238,74.1,65,59,7.93,13.8,0.2,9,2,9.6,1],
+["A0151",254,85.1,87,81,10.88,15.4,0.42,2.4,0,3,0],
+["A0152",175,71.6,62,44,6.53,8.7,0.63,20.7,2,11.9,2],
+["A0153",230,73.1,41,52,8.73,9.8,0.53,7,2,10.1,2],
+["A0154",218,82.4,87,86,10.97,19.2,0.41,1.1,0,4.5,0],
+["A0155",189,74.7,95,74,7.25,16.2,0.33,4,1,4.6,1],
+["A0156",273,71.5,60,67,8.71,13.1,0.42,6.8,1,3.7,1],
+["A0157",228,79.3,81,87,12.07,14,0.39,1.9,0,3,0],
+["A0158",222,76.4,72,79,7.24,13.4,0.36,2.8,0,6,1],
+["A0159",239,82.6,93,82,13.46,19,0.31,1.1,0,3.5,0],
+["A0160",205,67.7,49,51,7.06,12.4,0.42,12.6,2,8.7,2],
+["A0161",175,78.8,77,63,8.53,12.7,0.8,15.9,0,12,2],
+["A0162",156,71.5,77,65,8.17,13.4,0.37,13.6,1,7.9,2],
+["A0163",157,63.7,57,50,10.57,8,0.74,15.1,1,10,2],
+["A0164",173,63.9,41,19,8.1,8,0.74,20,2,9.7,2],
+["A0165",191,78.1,70,75,11.36,11.1,0.73,4.7,1,7.3,1],
+["A0166",162,72.6,83,67,10.56,12.6,0.44,8.8,1,7.4,1],
+["A0167",261,81.9,80,77,11.54,16.7,0.4,2.6,0,2.6,0],
+["A0168",120,64.2,46,49,5.88,8,0.12,29.5,3,9,2],
+["A0169",251,82.6,58,60,7.36,13.4,0.48,4.2,0,6.5,1],
+["A0170",194,80.8,62,80,6.46,12.7,0.61,9.5,1,6,1],
+["A0171",241,77.3,56,88,7.79,15.3,0.64,5.9,1,5.8,1],
+["A0172",235,69.7,69,68,9.14,14.2,0.42,8.7,0,4.9,1],
+["A0173",256,81.5,85,84,9.63,15.9,0.28,1.4,0,5,0],
+["A0174",211,73.8,57,100,10.81,12.9,0.2,7.2,0,4.8,1],
+["A0175",243,78.6,63,54,5.64,9.8,0.31,11.3,0,11.1,2],
+["A0176",258,83.7,78,86,10.98,16.1,0.43,4.2,0,3.7,0],
+["A0177",202,86.2,89,97,12.09,16.1,0.46,1.9,0,4.6,0],
+["A0178",200,79.8,54,69,7.53,10.9,0.58,12.4,2,6,2],
+["A0179",173,76.6,66,57,8.7,13.9,0.33,7.4,0,6.2,1],
+["A0180",251,83,89,91,11.36,17.4,0.3,1.4,0,2.9,0],
+["A0181",183,83.4,71,83,8.19,15.3,0.55,0,0,5.8,1],
+["A0182",226,82.3,96,91,13.07,18.1,0.31,0.7,0,3.5,0],
+["A0183",250,76.9,70,61,11.72,15.5,0.56,0,0,5.6,1],
+["A0184",258,64.5,73,63,12.17,15.1,0.56,11.8,1,3.7,1],
+["A0185",233,63.3,47,58,5.46,10.9,0.3,19.2,3,8.6,2],
+["A0186",220,86.8,99,81,12.18,17.7,0.2,2,0,3.5,0],
+["A0187",251,82.9,100,82,13.46,17.3,0.26,0.8,0,3,0],
+["A0188",246,84.1,82,89,10.69,16.4,0.33,1.7,1,3.9,0],
+["A0189",192,72.9,76,76,6.95,15.3,0.54,5.2,2,4.9,1],
+["A0190",235,86.4,100,94,11.76,17.4,0.39,0.9,0,1.6,0],
+["A0191",255,85.7,90,90,10.8,15.8,0.31,1.5,0,1,0],
+["A0192",196,70.9,40,48,4.5,11.6,0.79,18.2,2,10.4,2],
+["A0193",187,73.8,55,66,8.53,12.8,0.12,21.2,2,9.1,2],
+["A0194",197,80,48,42,6.24,9.4,0.69,2.7,2,9.7,2],
+["A0195",162,69.1,33,65,5.88,11.4,0.95,22.1,3,8.5,2],
+["A0196",202,73.6,91,60,12.03,13.9,0.3,5.2,1,7.7,1],
+["A0197",265,82.6,96,87,13.04,17.5,0.36,0.6,0,2.1,0],
+["A0198",229,83,65,89,7.67,14.5,0.32,1.9,0,6.3,1],
+["A0199",175,79.7,83,66,10.89,13.9,0.57,14,3,5.1,1],
+["A0200",180,67.6,44,63,5.98,8,0.58,29.3,1,12,2],
+["A0201",205,75,53,57,7,10.8,0.74,9,2,3.9,1],
+["A0202",159,58,26,16,7.63,8.7,0.5,20.2,6,9.9,2],
+["A0203",180,63.7,49,48,7.69,10.5,0.63,21,1,8.1,2],
+["A0204",269,79.1,92,89,10.5,18.4,0.28,0.5,0,2.1,0],
+["A0205",274,82.4,95,95,12.48,16,0.26,0.6,0,2.5,0],
+["A0206",239,80.1,85,83,10.31,13,0.27,4.1,0,4.6,1],
+["A0207",183,58.2,39,54,9.05,10,0.55,24.9,6,11.2,2],
+["A0208",231,70.8,39,73,5.59,12.6,0.52,27.6,1,8.4,1],
+["A0209",284,75.6,88,97,12.47,17.1,0.43,0.5,0,0.8,0],
+["A0210",235,73.4,80,77,12.69,14.2,0.59,9.8,0,5.8,1],
+["A0211",213,80.2,99,96,11.96,18.3,0.36,2.5,0,3.8,0],
+["A0212",162,73.1,89,70,9.18,15.9,0.39,14.7,1,2.7,1],
+["A0213",180,66.9,25,53,4.5,8.2,0.55,12.2,4,9,2],
+["A0214",210,71.4,65,35,8.97,11.7,0.67,22.4,2,6.3,2],
+["A0215",236,84.6,76,89,11.47,15.5,0.37,3.2,1,3.1,0],
+["A0216",240,83.9,82,84,11.52,14.4,0.27,2.2,0,3.8,0],
+["A0217",181,76,74,54,10.9,13.3,0.47,20.6,3,6.2,2],
+["A0218",245,84,92,83,12.73,15.3,0.38,3.5,0,3.3,0],
+["A0219",182,73.8,78,49,8.34,13.7,0.49,8.6,0,5.7,1],
+["A0220",208,75.5,79,73,8.33,14.7,0.43,10.2,2,4.9,1],
+["A0221",175,73.8,38,40,6.47,8,0.59,24.9,3,7.7,2],
+["A0222",245,85.1,93,85,11.06,17.2,0.3,0,0,3.5,0],
+["A0223",187,75.8,63,44,6.4,8,0.95,25.3,4,10.3,2],
+["A0224",277,83.8,82,84,12.72,14.9,0.21,2,0,3,0],
+["A0225",189,80.5,68,32,4.85,10.1,0.49,16.9,0,9.5,2],
+["A0226",202,79.7,74,70,11.51,14.3,0.45,7,0,2.3,1],
+["A0227",271,70.9,51,71,5.82,11.9,0.56,11.2,2,7.9,2],
+["A0228",229,90.7,83,91,11.16,15.4,0.2,2.6,0,1.9,0],
+["A0229",180,71.5,42,61,5.61,8,0.46,15.3,0,9.7,2],
+["A0230",215,71,48,80,10.03,13.7,0.36,7.1,2,7.9,0],
+["A0231",198,63,11,22,4.92,9,0.3,25,2,11.7,2],
+["A0232",191,64.6,70,87,8.56,15.1,0.55,7.6,1,6.4,1],
+["A0233",210,67.2,45,60,5.34,10.3,0.39,14.6,3,8.2,2],
+["A0234",191,82.3,81,63,11.13,12.5,0.66,9.5,0,6,1],
+["A0235",156,61.4,37,62,9.21,10.3,0.31,16.5,5,7.2,2],
+["A0236",179,81.1,65,63,10.38,15.2,0.46,11.9,0,5,1],
+["A0237",157,69.2,44,67,9.55,12.9,0.52,7.3,1,11.1,2],
+["A0238",279,83.1,87,92,10.67,14.4,0.39,0,0,3.6,0],
+["A0239",170,66.3,45,40,5.35,16.6,0.57,16.4,3,7.3,2],
+["A0240",217,82.5,62,87,8.63,14.1,0.63,13.8,0,6.3,1],
+["A0241",196,68.2,53,23,5.47,12,0.56,24.9,4,9.5,2],
+["A0242",238,87.1,79,86,12.11,16.9,0.29,0.7,0,3.1,0],
+["A0243",205,65,25,53,7.34,10.8,0.46,23.8,3,10.1,2],
+["A0244",264,75.3,82,87,10.25,14.2,0.36,5.2,1,3.6,1],
+["A0245",211,79.8,45,74,6.24,13.3,0.49,13.6,3,9.9,2],
+["A0246",207,78.7,63,73,11.24,14.3,0.33,4.7,1,7.8,1],
+["A0247",229,61.5,66,27,8.4,13.8,0.81,9.6,4,12,2],
+["A0248",222,78.2,39,66,10.04,15,0.56,4.7,0,7.3,1],
+["A0249",193,75.1,55,76,7.66,13,0.49,8.2,0,5.6,1],
+["A0250",242,84.4,82,90,11.7,15.6,0.4,3.5,0,2.7,0],
+["A0251",270,90.5,88,100,10.99,16.2,0.28,0,0,2.6,0],
+["A0252",140,71.3,32,74,9.85,8,0.66,17.8,4,12,2],
+["A0253",209,81.9,77,81,8.16,12.5,0.52,6.4,0,5.6,1],
+["A0254",278,85.8,91,86,11.72,17.5,0.37,0.3,1,2.2,0],
+["A0255",151,63.7,30,36,7.35,14.4,0.51,15,1,9.2,2],
+["A0256",196,61.1,33,23,5.59,8,0.52,20.8,2,11.2,2],
+["A0257",212,73.9,79,77,10.47,16.1,0.34,4.1,0,6.7,1],
+["A0258",261,80.4,91,85,12.59,18.3,0.3,2.2,0,3.3,0],
+["A0259",214,71.9,71,69,8.6,15.2,0.44,7,1,5.4,1],
+["A0260",223,65.4,28,47,6.3,13.3,0.56,25.7,3,10.2,2],
+["A0261",202,75.7,25,70,8.05,14.5,0.24,19.9,0,8.1,2],
+["A0262",196,74.6,44,57,7.38,10,0.67,25.2,2,10.3,2],
+["A0263",239,73,80,92,11.66,15.2,0.47,4.2,1,3.9,1],
+["A0264",157,68.9,58,32,4.5,10.1,0.61,16.9,3,12,2],
+["A0265",245,88.2,92,89,10.65,16.3,0.4,0.8,0,4.9,0],
+["A0266",181,63.1,35,39,6.12,8,0.52,25.9,6,8.3,1],
+["A0267",200,83.1,86,92,13.03,16.5,0.38,2,0,1.4,0],
+["A0268",138,74.4,58,44,6.42,10.6,0.48,24.2,7,7.2,2],
+["A0269",191,70.9,25,50,4.69,9.7,0.6,16.6,4,9.5,2],
+["A0270",163,67,36,66,5.91,12.7,0.65,23.6,0,9.8,2],
+["A0271",237,70.9,61,70,9.82,15.6,0.51,8.2,1,4.4,1],
+["A0272",244,82.8,84,82,12.5,15.2,0.36,2,0,3.6,0],
+["A0273",178,72.6,56,73,8.93,15.7,0.35,5,1,6.9,1],
+["A0274",272,73.6,70,67,7.64,14.1,0.53,5.5,2,6.1,1],
+["A0275",204,67.9,81,30,4.99,10.6,0.58,21.9,2,8.7,2],
+["A0276",279,82.5,82,84,9.76,17,0.4,1.4,0,3,0],
+["A0277",228,68.7,35,45,7.6,11.1,0.35,13.5,3,9.1,2],
+["A0278",211,74.4,20,10,5.6,10,0.76,17.8,0,10.7,2],
+["A0279",229,81.9,82,79,11.3,12.8,0.39,4.1,0,4.6,1],
+["A0280",238,78.8,82,90,12.44,16.5,0.28,1.4,0,2,0],
+["A0281",160,68,49,4,6.89,10.5,0.79,24.4,6,12,2],
+["A0282",254,84.9,83,88,12.41,17,0.28,2,0,0.9,0],
+["A0283",282,88.2,84,93,13.19,16.8,0.32,0.7,0,3.3,0],
+["A0284",231,78.5,99,95,10.65,17,0.44,1.7,0,2.8,0],
+["A0285",215,70.8,61,44,7.94,12.3,0.66,20.1,0,3.8,2],
+["A0286",216,84.4,70,76,11.22,17,0.41,5.7,0,5.8,2],
+["A0287",305,85.5,90,90,11.1,17,0.36,0,0,2.3,0],
+["A0288",185,71.6,64,71,9.14,12.9,0.43,9,2,4.8,1],
+["A0289",260,85.3,91,96,12.43,16.4,0.34,0.3,0,3,0],
+["A0290",191,64.2,38,18,8.07,8,0.38,23.3,2,8.9,2],
+["A0291",243,81.8,87,73,10.77,15.5,0.35,3.2,1,4.7,0],
+["A0292",269,85,89,83,13.5,15.6,0.22,1.8,0,2.7,0],
+["A0293",212,81.8,85,91,11.11,13.8,0.42,2.2,0,3.1,0],
+["A0294",202,71.3,43,39,9.74,11.1,0.71,17.2,1,7.8,2],
+["A0295",205,68.7,48,64,5.9,12.3,0.71,15.3,4,10.7,2],
+["A0296",221,71.3,86,77,9.02,12,0.38,6.4,2,3.8,1],
+["A0297",249,75.9,79,76,10.9,14.9,0.53,2.7,0,4.4,1],
+["A0298",216,73,94,69,8.8,16.8,0.51,8.9,1,6.7,2],
+["A0299",232,84,92,86,10.95,16.2,0.34,2.7,0,4.2,0],
+["A0300",213,63,26,70,5.81,9.8,0.65,14.5,4,8.8,2],
+["A0301",224,75.1,47,78,7.55,14.1,0.32,9.2,2,5.3,1],
+["A0302",238,81.3,83,91,11.44,18.2,0.26,0,0,2.8,0],
+["A0303",246,81.3,87,90,12.22,14.8,0.4,0,0,2.7,0],
+["A0304",191,76.9,59,71,6.99,10.6,0.63,9.4,1,5.9,1],
+["A0305",262,78.7,86,84,10.05,14.7,0.48,1.3,0,3.2,0],
+["A0306",239,78,70,71,10.03,12.6,0.43,6,0,5.5,1],
+["A0307",144,67.2,61,59,6.28,12.2,0.64,10.1,1,8.6,2],
+["A0308",217,75,78,58,8.29,10.5,0.59,1.8,1,8.7,1],
+["A0309",187,62.7,36,34,5.55,11.2,0.51,1.6,4,6.1,2],
+["A0310",157,63.8,34,36,6.03,9.9,0.24,17.9,2,7.2,2],
+["A0311",147,69.4,46,68,7,10.4,0.76,22.2,4,11,2],
+["A0312",291,84.6,85,80,12.09,15.9,0.4,1.6,0,5.2,0],
+["A0313",277,87.7,83,90,13.48,16.6,0.31,1.9,0,2.6,0],
+["A0314",253,72.1,73,76,8.2,14.5,0.6,8,1,6.2,1],
+["A0315",215,79.3,62,63,10.03,14.3,0.43,7.6,1,8.1,1],
+["A0316",163,70,56,37,4.5,9.4,0.62,13.7,0,9.5,2],
+["A0317",183,73.4,46,63,9.29,10.2,0.32,10.6,4,8,1],
+["A0318",183,71.5,55,69,9.42,14.8,0.48,9.8,1,5.3,0],
+["A0319",232,84.1,84,83,10.76,16.1,0.28,2.9,0,3,0],
+["A0320",233,76.9,89,97,12.39,13.7,0.59,0,0,4.1,1],
+["A0321",120,67.7,53,44,5.38,9.2,0.63,29.9,0,8.2,2],
+["A0322",192,71.3,75,60,7.36,11.3,0.61,8.9,1,5,1],
+["A0323",237,76.5,96,87,10.72,16.6,0.34,2.9,0,3.7,0],
+["A0324",269,87.3,85,94,12.27,17.6,0.28,0.1,0,3,0],
+["A0325",217,74.6,52,33,4.5,10.9,0.89,25.8,1,10.2,2],
+["A0326",141,78.8,67,72,11.19,13.8,0.54,4,2,5.2,1],
+["A0327",236,77.2,65,70,7,14.2,0.6,6.5,1,4.4,1],
+["A0328",218,67,51,34,8.07,10.5,0.83,14.4,1,12,2],
+["A0329",204,72.5,49,42,6.53,12.8,0.64,17.3,0,10.8,2],
+["A0330",255,86.2,92,99,13.5,18.4,0.21,0,0,1.2,0],
+["A0331",166,80.8,88,72,10.37,13.2,0.49,5.1,0,4.2,2],
+["A0332",230,78.3,76,80,12.09,17,0.35,3,0,4.4,0],
+["A0333",202,83.3,87,91,10.29,16.9,0.36,3.1,0,2.6,1],
+["A0334",236,83,92,87,13.49,15.4,0.32,2.2,0,4.1,0],
+["A0335",188,83.4,29,67,8.17,11.5,0.41,25.5,4,9.3,2],
+["A0336",237,79.3,59,58,8.48,13.2,0.36,5.6,0,5,1],
+["A0337",253,73.3,92,82,12.72,17.1,0.35,2.4,1,2.8,0],
+["A0338",149,70.6,41,87,7.07,10,0.28,18.8,1,6.4,2],
+["A0339",238,81.4,90,94,11.62,17.2,0.24,0,0,2.7,0],
+["A0340",233,81.1,62,75,11.75,12,0.5,6.9,0,4.5,1],
+["A0341",126,59,45,60,5.91,8.3,0.64,7.7,4,8.3,2],
+["A0342",184,66.2,36,54,5.51,9,0.73,27.2,1,10.5,2],
+["A0343",148,76.5,26,57,9.28,11.5,0.69,11,1,11.9,2],
+["A0344",193,81.2,74,71,8.59,13.7,0.44,0.5,1,7.4,1],
+["A0345",242,79.5,96,95,11.19,15.9,0.22,1.6,0,2.1,0],
+["A0346",145,71.4,58,33,4.5,12.8,0.95,15.3,2,8.8,2],
+["A0347",191,76.6,85,67,9.38,12.2,0.52,6.4,1,5.5,1],
+["A0348",258,63.6,59,68,7.56,13.6,0.47,6.1,1,4.1,1],
+["A0349",203,86.8,89,74,9.12,14.8,0.4,11.5,0,5.7,1],
+["A0350",209,59.5,26,32,5.68,10.1,0.79,24.5,2,12,2],
+["A0351",185,81.3,59,73,7.64,12,0.34,12.5,2,6.5,1],
+["A0352",168,66.1,47,36,7.47,11.9,0.74,1.9,2,9.5,2],
+["A0353",228,86.1,73,94,12.91,18.5,0.29,3.7,0,3.3,0],
+["A0354",120,58,48,45,7.71,8.5,0.35,20.8,3,10.1,2],
+["A0355",120,64.8,35,60,4.5,11.2,0.69,17.3,1,8.8,2],
+["A0356",235,73.6,56,68,9.27,12.1,0.41,7.7,0,9.9,1],
+["A0357",227,72.9,62,87,10.15,14.6,0.41,3,0,5.8,1],
+["A0358",145,70.2,30,75,7.45,11,0.76,13.5,2,7.9,2],
+["A0359",262,76.6,79,86,10.41,15.6,0.53,1.7,0,2.7,0],
+["A0360",208,78.8,55,71,6.05,16.6,0.5,4.5,1,7.5,1],
+["A0361",150,75.6,32,42,5.71,8.1,0.75,12.9,1,9.8,2],
+["A0362",181,73.2,50,48,6.72,11.8,0.83,11.9,1,8.4,2],
+["A0363",246,78.4,81,76,8.65,16.5,0.45,7.7,0,3,1],
+["A0364",254,80.6,85,94,13.05,16.9,0.38,0.8,0,2.6,0],
+["A0365",253,74.6,87,90,8.93,15.4,0.26,7.4,0,4.5,1],
+["A0366",219,76.9,68,99,9.31,14.4,0.46,9.4,0,2.7,1],
+["A0367",194,83.7,52,57,8.9,15.9,0.72,10.3,1,6,1],
+["A0368",199,75.1,45,44,4.5,12.1,0.66,9.2,1,9.7,2],
+["A0369",215,66.4,44,75,8.26,11.5,0.74,18.3,0,9.6,2],
+["A0370",192,79.7,87,88,12.32,15.8,0.31,2.6,0,3.3,0],
+["A0371",238,80.5,77,78,9.63,14.3,0.53,0.8,1,4.7,1],
+["A0372",195,82,58,46,8.43,12.6,0.41,7.6,0,4.6,1],
+["A0373",187,70.7,47,55,6.25,13,0.61,6.3,3,11.3,2],
+["A0374",270,80.6,87,89,11.72,15.4,0.39,0,0,2.9,0],
+["A0375",206,77.4,87,82,10.79,15.8,0.33,7,0,2.1,0],
+["A0376",205,67.3,51,56,6.04,10.2,0.62,15.3,2,7.6,2],
+["A0377",234,74.3,85,56,10.67,12.7,0.68,6.3,0,2.9,1],
+["A0378",178,70.2,24,18,6.36,8.5,0.67,19.4,4,11.5,2],
+["A0379",227,76.7,46,65,9.49,12.1,0.52,10.8,0,6.3,1],
+["A0380",235,82.1,88,88,12.99,16.3,0.39,1.9,0,1.7,0],
+["A0381",219,83.6,69,77,8.24,15.6,0.72,4.7,0,6.3,1],
+["A0382",275,90.8,84,85,13.18,16.3,0.34,1.4,0,2.7,0],
+["A0383",120,65.7,57,60,5.4,12.5,0.8,24.3,6,12,2],
+["A0384",171,66.1,16,36,6.78,13.5,0.83,16.5,4,9.4,2],
+["A0385",165,72.9,48,45,7.69,11.2,0.64,18.8,3,7.4,2],
+["A0386",176,65.2,65,71,4.5,11.3,0.61,14.3,4,7.3,2],
+["A0387",153,71.1,60,58,8.21,15.7,0.37,10.2,1,4.9,1],
+["A0388",234,71.6,75,67,7.86,15.8,0.53,6,1,2.8,1],
+["A0389",202,67.5,76,68,9.77,12.4,0.47,14.1,1,8.9,1],
+["A0390",184,78.4,46,72,8.14,16.6,0.53,9.4,0,5.6,1],
+["A0391",232,82.3,62,75,8.06,10.9,0.62,7.4,2,5.7,1],
+["A0392",215,68.2,56,63,6.45,13.4,0.6,10.9,1,6.5,1],
+["A0393",233,80.6,68,22,4.5,11.9,0.71,22.8,1,7,2],
+["A0394",255,82.3,83,88,11.23,18.4,0.37,1,0,4.3,0],
+["A0395",142,68.4,36,41,6.22,8.6,0.75,20.8,3,9.9,2],
+["A0396",210,75.3,48,61,5.54,11.7,0.63,16.4,5,9.8,2],
+["A0397",145,81.6,68,64,8.39,13.3,0.52,6.8,0,5,1],
+["A0398",214,86,91,93,13.4,16.4,0.25,0,0,1.5,0],
+["A0399",223,75.1,77,59,12.1,12.7,0.34,10.2,0,6.9,1],
+["A0400",142,74.4,30,25,6.03,8,0.88,16.5,2,11.2,2],
+["A0401",249,85.1,84,90,12.9,17,0.24,0.8,0,2.8,0],
+["A0402",131,78,43,48,5.83,10,0.53,8.1,4,6.9,2],
+["A0403",282,80.1,91,95,12.25,16.6,0.26,0.4,0,1.1,0],
+["A0404",250,80.1,78,81,10.82,15,0.4,1.4,0,4.1,0],
+["A0405",185,68,27,48,6.56,9.4,0.65,21.4,1,8.2,2],
+["A0406",187,69.8,75,100,11.09,13.5,0.53,7.8,0,6.6,1],
+["A0407",208,85.7,82,89,9.83,16.6,0.39,1.9,0,4.7,0],
+["A0408",244,74.7,71,67,8.45,13.5,0.5,7.7,2,4.9,1],
+["A0409",224,85.5,81,97,10.53,17.4,0.35,1.6,0,2.9,0],
+["A0410",264,79.2,89,94,10.94,15.8,0.18,2,0,1.7,0],
+["A0411",203,74,56,71,9.19,12.9,0.41,6.4,0,5.1,1],
+["A0412",186,67.5,47,61,4.7,12,0.51,8.6,0,8.1,2],
+["A0413",233,77.8,72,68,9.98,13.2,0.6,10.3,1,3.9,1],
+["A0414",204,69,51,41,6.48,10.1,0.67,14.6,3,10,2],
+["A0415",249,83,88,98,11.39,15.2,0.25,3.7,0,3.2,0],
+["A0416",237,80.5,87,82,11.87,15.1,0.4,0.9,0,3.8,0],
+["A0417",206,66.2,45,45,4.5,10.4,0.71,13.2,3,5.5,2],
+["A0418",249,83.5,89,84,10.69,14.7,0.31,1.6,0,3.2,0],
+["A0419",180,60.3,24,31,6.6,10,0.72,19.5,5,9.8,2],
+["A0420",236,87.4,87,95,11.8,17.1,0.2,1.4,0,0.8,0],
+["A0421",212,83.4,86,85,13.5,15.2,0.39,1.9,1,3.7,0],
+["A0422",230,74.1,56,67,9.14,13.6,0.23,5.8,0,6,1],
+["A0423",252,59.4,61,29,4.5,8.1,0.71,26.6,5,7.6,2],
+["A0424",162,67,53,48,7.69,8.6,0.56,10.6,1,7.8,1],
+["A0425",255,85.5,91,85,10.65,16.7,0.31,2.1,0,2.8,0],
+["A0426",222,75.7,54,66,7.91,13,0.47,7.4,2,5.7,1],
+["A0427",211,73.2,81,61,8.63,15.1,0.57,1.6,2,4.7,1],
+["A0428",258,85.1,99,95,10.9,15.5,0.28,0,0,3.8,0],
+["A0429",227,80.6,65,77,8.15,11.6,0.49,3.3,2,5.2,1],
+["A0430",196,78.3,77,86,10.21,11,0.52,5.7,1,5.4,1],
+["A0431",173,63.5,41,37,8.43,8,0.72,25.9,4,9.8,2],
+["A0432",227,83.7,62,73,10.25,13.1,0.32,4.2,0,5.4,1],
+["A0433",204,81.6,84,87,12.35,16.2,0.21,1.7,0,2.6,0],
+["A0434",253,82.8,83,79,12.79,16.3,0.25,0.4,0,3.7,0],
+["A0435",252,81.1,82,96,11.16,17.8,0.33,1.9,0,2.8,0],
+["A0436",218,71.8,70,79,7.56,15.7,0.45,12.2,2,6.3,1],
+["A0437",237,91.2,80,87,11.36,16.5,0.29,1.7,0,3.5,0],
+["A0438",179,58.5,36,27,4.94,9.4,0.59,22.7,1,7.1,2],
+["A0439",184,68.6,31,49,10.59,10.9,0.7,13.7,3,8.1,2],
+["A0440",208,70.1,67,85,9.99,14,0.4,4.3,1,5.7,1],
+["A0441",191,58.2,35,48,4.66,8,0.82,24.7,6,10.2,2],
+["A0442",285,80.7,81,82,12.68,15.5,0.33,1.7,0,3.7,0],
+["A0443",215,79.6,100,79,11.25,13.5,0.77,9.8,0,3.3,1],
+["A0444",188,66.9,45,69,4.99,11,0.61,20,4,12,2],
+["A0445",258,79.3,92,77,10.47,16.7,0.47,3.9,0,2,0],
+["A0446",166,61.6,15,25,6.96,13,0.9,17.1,4,11.4,2],
+["A0447",241,74,42,54,6.46,8,0.36,12.9,0,8.1,2],
+["A0448",239,66.4,82,61,10.64,12.5,0.63,11,3,4.3,1],
+["A0449",264,86.6,87,83,11.57,16.4,0.48,0.8,0,2.2,0],
+["A0450",229,81.4,94,83,13.37,16.9,0.28,0.8,0,3.4,0],
+["A0451",167,80.9,59,43,6.98,12.3,0.38,8.3,3,6.5,2],
+["A0452",265,77.1,83,96,12.74,16.8,0.33,2.6,1,3.4,0],
+["A0453",244,80.1,100,82,9.91,17.4,0.19,1.4,0,3.1,0],
+["A0454",155,68.4,37,87,8.29,11.6,0.75,14,2,7.9,2],
+["A0455",265,81.7,95,90,11.6,14,0.29,1.1,0,1.9,0],
+["A0456",163,71,35,34,7.09,12.7,0.95,31,3,10.1,2],
+["A0457",266,88.9,90,90,11.3,16.3,0.33,1.3,0,3.4,0],
+["A0458",244,83.9,98,85,12.88,18.4,0.39,0.6,0,3.2,0],
+["A0459",201,72.3,61,80,8.64,12.8,0.43,5.5,1,7.9,1],
+["A0460",246,84.8,96,87,11.12,15.8,0.35,0.9,0,3.7,0],
+["A0461",146,68.4,44,34,6.36,10.5,0.64,18,5,9,2],
+["A0462",138,72.7,71,55,7.36,8.3,0.73,22.9,4,6.9,2],
+["A0463",249,84.6,84,85,13.5,16.4,0.42,0.5,0,3.7,0],
+["A0464",261,85.3,97,90,12.27,16.3,0.32,1.9,0,1.9,0],
+["A0465",254,80.2,59,70,11.2,15.6,0.65,11.6,1,3.6,1],
+["A0466",198,66.9,70,67,10.75,15.9,0.39,7.9,1,6,1],
+["A0467",173,72.7,77,74,9.76,15.3,0.52,8.4,0,6.4,1],
+["A0468",234,79.2,74,75,8.23,11.8,0.59,7.1,2,7.1,1],
+["A0469",249,79.7,72,70,7.21,11.3,0.44,7,0,4,1],
+["A0470",214,73.2,54,54,9.2,14,0.65,11,1,7,1],
+["A0471",219,75.6,67,81,9.7,14,0.51,4.5,1,4.7,1],
+["A0472",242,75.6,44,57,6.63,9.1,0.45,19,3,9.5,2],
+["A0473",196,63.6,23,24,6.6,9.5,0.65,25.1,3,11.8,2],
+["A0474",181,67.6,63,30,6.63,10.3,0.56,22.9,0,9.5,2],
+["A0475",240,85.4,85,85,9.8,17.4,0.23,1.5,0,2.3,0],
+["A0476",241,81.7,87,77,10.56,16.8,0.24,2.5,0,3,0],
+["A0477",176,75,46,59,6.75,8,0.52,5.3,2,12,2],
+["A0478",211,83.4,93,90,11.27,15.3,0.32,0.4,0,4.6,0],
+["A0479",207,63.1,66,70,8.44,11.3,0.8,1.3,1,8.3,2],
+["A0480",153,87.9,48,51,4.5,9,0.56,12.6,0,9.8,2],
+["A0481",174,62.8,56,39,6.33,9,0.52,17.5,6,8.7,2],
+["A0482",184,73.1,37,54,7.06,12.8,0.77,22.2,4,9.3,2],
+["A0483",231,82.8,60,81,8.79,13.4,0.33,10.7,0,5.3,1],
+["A0484",220,79.3,82,88,9.55,15.8,0.61,5.9,1,6.2,1],
+["A0485",229,69.9,69,72,7.62,12.2,0.49,10.9,4,8.7,2],
+["A0486",255,87,84,87,12.38,16.9,0.35,1.3,0,1.3,0],
+["A0487",242,78,72,50,10.35,13,0.53,9,2,7,1],
+["A0488",210,58,45,52,5.56,9.4,0.46,22,4,10.3,2],
+["A0489",211,84.3,75,70,7.56,11.9,0.3,12.4,2,5.6,1],
+["A0490",167,60.9,49,51,4.89,8.2,0.57,15.7,4,12,2],
+["A0491",246,79.9,82,78,11.35,15.5,0.33,0.6,0,3.9,0],
+["A0492",217,84.7,86,74,9.42,15,0.33,2.2,0,2.3,0],
+["A0493",237,70.9,48,70,7.72,8,0.36,7.5,3,8.9,1],
+["A0494",170,71.5,43,47,5.81,11,0.9,19.4,1,9.8,2],
+["A0495",199,70.6,48,49,7.49,9.3,0.24,14.4,3,6.4,2],
+["A0496",183,63.2,29,40,4.87,11.1,0.4,24.5,4,12,2],
+["A0497",120,63.4,42,49,5.02,9.4,0.61,22.6,1,9.5,2],
+["A0498",130,73.3,30,0,7.13,10.7,0.72,28.1,4,10.5,2],
+["A0499",234,85.1,86,88,9.85,16.8,0.4,3,0,1.5,0],
+["A0500",137,61.5,46,58,5.86,11.7,0.8,21.9,2,7.8,2],
+["A0501",257,78.4,89,87,10.53,16.4,0.39,0,0,3.2,0],
+["A0502",222,73.5,58,39,5.55,12.7,0.57,22.2,2,6,2],
+["A0503",223,59.5,41,16,6.17,8,0.65,16.8,2,10.5,2],
+["A0504",171,79,56,63,7.13,14.5,0.42,6.5,0,6,1],
+["A0505",224,66.6,72,78,11.22,15.2,0.42,3.6,1,5.1,1],
+["A0506",126,60.8,45,64,7.37,9.2,0.68,23.5,3,11.4,2],
+["A0507",259,75,69,58,10.65,15.4,0.66,1.9,0,6.1,1],
+["A0508",277,84.9,96,100,11.59,18.4,0.4,0.7,0,3,0],
+["A0509",240,85.2,87,100,10.08,16.8,0.31,0.4,0,1.9,0],
+["A0510",147,69.7,40,67,8.11,9.4,0.27,25.6,2,10.2,2],
+["A0511",252,70.6,81,78,9.88,13.3,0.13,6.6,0,2.6,1],
+["A0512",255,73,86,83,11.3,12,0.38,7,3,5.1,0],
+["A0513",219,74.5,64,78,9.46,12.9,0.29,4.2,0,6.5,0],
+["A0514",181,79.7,67,62,10.15,13,0.4,7.7,0,6.6,1],
+["A0515",178,77.8,70,89,9.93,14,0.46,6.3,0,7,1],
+["A0516",162,65.8,41,44,4.5,9.3,0.92,23,4,5.6,2],
+["A0517",159,70.4,48,54,10.05,9.1,0.5,19.2,2,7,2],
+["A0518",228,80.3,86,86,11.95,13.6,0.3,2,0,4.3,0],
+["A0519",221,77.3,50,89,10.2,12.8,0.48,0,0,3.8,1],
+["A0520",237,81.5,81,84,11.08,17.4,0.32,4.4,0,3,0],
+["A0521",217,78,54,81,9.4,12.6,0.55,3.5,0,5,1],
+["A0522",199,75.4,55,73,8.56,13.8,0.46,12.7,2,7,0],
+["A0523",184,75.2,76,76,9.88,13.9,0.54,10.8,0,4.7,1],
+["A0524",215,85,68,74,10.38,12.7,0.23,8.7,0,2.4,1],
+["A0525",284,83.3,95,82,11.93,16.4,0.33,2.7,0,2.4,0],
+["A0526",206,65.9,78,70,4.5,14.2,0.58,5.9,0,6.4,1],
+["A0527",225,88,100,93,10.68,17.1,0.25,0,0,1.8,0],
+["A0528",167,65,56,25,6.94,12.1,0.67,9.6,1,8.3,2],
+["A0529",263,74.7,81,89,10.05,11.7,0.56,3,0,5.5,1],
+["A0530",235,80.4,81,72,7.57,12.5,0.44,4.4,0,9.2,1],
+["A0531",162,77.1,81,65,10.01,15.1,0.47,3.5,2,6.8,1],
+["A0532",203,82.5,77,82,9.77,12.4,0.48,6.5,0,5.4,0],
+["A0533",232,72,27,49,6.8,12.4,0.53,18.6,3,9.4,2],
+["A0534",205,74.9,83,74,9.06,14.5,0.54,11.8,0,6.1,2],
+["A0535",153,60.1,40,48,8.29,11.5,0.61,5.3,0,5.8,1],
+["A0536",201,69.8,33,50,7.25,15,0.65,17.4,4,10.2,2],
+["A0537",160,68,18,37,6.94,12.9,0.39,23.9,2,4,2],
+["A0538",208,68.2,76,68,10.23,15.4,0.28,10.4,0,4.2,1],
+["A0539",120,58,26,37,6.87,8,0.62,10.4,2,12,2],
+["A0540",184,68.4,70,57,5.46,8.4,0.34,18.3,6,11,2],
+["A0541",223,80.7,93,93,12.88,15.4,0.19,1.3,0,2.9,0],
+["A0542",225,76.3,58,76,8.39,14.7,0.34,0,2,6.9,1],
+["A0543",248,88.7,90,83,12.79,18.1,0.35,0,0,2.3,0],
+["A0544",254,85.9,89,94,12.41,17.3,0.21,1.5,0,3.8,0],
+["A0545",238,85,93,95,11.27,16.1,0.38,0.7,0,2.5,0],
+["A0546",254,79.5,85,80,9.04,16,0.33,2,0,4.3,0],
+["A0547",242,85.8,85,82,12,15,0.32,2.7,0,2.5,0],
+["A0548",181,62.8,44,35,6.94,10.6,0.81,24.8,3,10.4,2],
+["A0549",250,78.4,84,89,12.7,16.2,0.33,0,0,4.6,0],
+["A0550",194,74.5,55,50,9.54,10.2,0.68,22.3,0,7.2,2],
+["A0551",177,67.3,53,56,9.47,14.5,0.46,7.4,0,4.4,1],
+["A0552",239,83.1,93,95,11.96,16.3,0.41,1,0,5.6,0],
+["A0553",257,79,82,78,11.29,14.3,0.39,1.4,0,3.6,0],
+["A0554",224,83.4,91,85,11.26,16.1,0.44,0.2,0,4.4,0],
+["A0555",187,73.4,45,35,4.5,13,0.69,12.4,2,10.5,2],
+["A0556",245,73.2,55,21,7.29,11.6,0.83,7.2,2,9,2],
+["A0557",280,79.4,87,82,11.35,17.6,0.38,2.1,0,3.1,0],
+["A0558",210,83.7,89,87,10.52,16,0.32,0,1,3.3,0],
+["A0559",222,77.4,80,75,11.47,12.4,0.44,5,2,6.8,1],
+["A0560",195,74.8,36,56,5.82,11.3,0.83,9,1,12,2],
+["A0561",189,76.8,44,63,7.77,10.8,0.43,17.4,2,9.3,2],
+["A0562",219,68.3,52,23,4.93,9.3,0.65,16.3,1,11.9,2],
+["A0563",189,72.2,33,58,8.61,12.3,0.82,12.5,5,7.7,2],
+["A0564",327,81.4,85,89,12.14,15.2,0.3,0.1,0,3.5,0],
+["A0565",223,83.3,89,87,10.33,15,0.31,2.5,0,4.5,0],
+["A0566",195,66.7,35,54,6.64,14.4,0.78,23.6,5,12,2],
+["A0567",297,84.8,95,89,10.76,15.8,0.3,2.7,0,1.8,0],
+["A0568",182,65,40,61,6.67,9.5,0.42,5.3,1,8.3,2],
+["A0569",254,74.7,79,54,10.44,11,0.6,5.7,1,5,1],
+["A0570",170,76,63,75,8.78,15.1,0.43,3.4,2,7.1,1],
+["A0571",193,61.7,44,40,6.58,11.9,0.75,7.1,3,3.5,2],
+["A0572",258,83,83,84,11.98,16.4,0.36,2.1,0,2.9,0],
+["A0573",198,69.6,75,55,7.54,13.1,0.69,13.1,1,4.6,1],
+["A0574",183,76.9,49,38,5.5,10.8,0.52,23,4,6.9,2],
+["A0575",251,81.9,96,87,11.86,15.6,0.31,0.1,0,3.2,0],
+["A0576",216,87.1,88,92,9.07,16.7,0.39,1.8,0,3.6,1],
+["A0577",164,74.6,88,76,11.62,12.9,0.36,5.6,0,3.2,1],
+["A0578",238,75.7,90,79,8.18,12.6,0.2,7.7,0,6.6,2],
+["A0579",222,64.6,49,29,6.64,12,0.62,17.5,4,8.7,2],
+["A0580",250,81.2,92,86,13.5,16.8,0.33,1.1,0,3,0],
+["A0581",250,82.2,85,87,13.5,17.8,0.3,0.7,0,2.4,0],
+["A0582",216,77.7,87,83,11.21,13.1,0.34,7.7,0,1.6,1],
+["A0583",190,80.8,63,78,11.45,14.6,0.51,7.8,0,4.1,1],
+["A0584",216,74.5,54,79,9.3,13.4,0.41,0,0,6.5,1],
+["A0585",185,65.8,67,53,7.03,14,0.38,21.1,0,7.1,2],
+["A0586",224,80.4,62,93,10.46,13.9,0.55,4.8,0,1.5,1],
+["A0587",229,77.2,89,69,9.31,14.4,0.3,3.3,0,3.7,1],
+["A0588",226,85.7,94,81,11.43,16.1,0.41,2.7,0,4.3,0],
+["A0589",249,82.2,93,98,13.27,17.7,0.26,0,0,3.4,0],
+["A0590",169,71.4,61,24,9.19,9.8,0.69,15,3,5.9,2],
+["A0591",171,70.7,45,60,7.19,9.8,0.62,1.1,3,5.9,2],
+["A0592",174,73.5,61,70,7.94,10.7,0.5,14.2,3,5.8,1],
+["A0593",183,76.9,56,90,9.32,15.2,0.24,6,0,4.5,1],
+["A0594",214,76.9,56,54,11,11.1,0.49,9.5,0,5.3,1],
+["A0595",241,84.3,90,85,10.11,16.1,0.32,0,0,3.2,0],
+["A0596",189,74.1,48,69,6.21,9.9,0.32,14.8,0,6.5,2],
+["A0597",263,82.8,87,100,11.67,15.5,0.38,3.2,0,1.8,1],
+["A0598",177,63,64,35,4.5,10.1,0.57,22,0,11,2],
+["A0599",158,66.2,26,46,5.59,8.7,0.85,14.8,3,8.4,2],
+["A0600",236,81.6,75,64,8.54,12.5,0.46,2.2,0,5.6,1],
+["A0601",254,85,99,100,11.54,16.3,0.24,0,0,2.1,0],
+["A0602",220,70.5,50,76,9.13,12.9,0.47,6.9,1,6.4,1],
+["A0603",188,71.7,71,53,8.19,15.5,0.31,7.7,0,5.2,1],
+["A0604",262,72.4,61,55,10.23,15.7,0.56,4.3,1,4.8,1],
+["A0605",147,62,58,7,5.16,8,0.5,25.9,3,9,2],
+["A0606",187,82.3,69,57,9.05,15.2,0.34,12,2,5.3,1],
+["A0607",253,91,86,85,11.72,15.5,0.37,1.9,0,2.9,0],
+["A0608",166,65,16,30,4.5,8.9,0.75,16.7,3,12,2],
+["A0609",142,62.2,63,24,5.39,9.8,0.53,11,7,5.7,2],
+["A0610",226,78,88,79,12.77,17.1,0.26,0.9,0,2.7,0],
+["A0611",231,79.6,95,89,12.87,17.5,0.28,0.3,0,3.5,0],
+["A0612",259,85.8,89,84,12.17,17,0.31,1.7,0,2.3,0],
+["A0613",227,83.2,86,86,11.9,17.2,0.37,0,0,3.8,0],
+["A0614",251,89.9,99,89,12.97,16.6,0.39,0,0,1.2,0],
+["A0615",212,64.1,32,71,6.2,11.2,0.37,8.7,1,9.2,2],
+["A0616",231,71.9,74,86,10.55,15.6,0.42,5.6,0,3.2,1],
+["A0617",195,87.5,91,96,11.38,17.4,0.31,2,0,4.2,0],
+["A0618",229,73.3,81,67,8.24,14,0.38,5.6,0,4.3,1],
+["A0619",165,71,63,70,8.05,12.5,0.61,6.8,2,7.1,1],
+["A0620",258,80.5,87,82,9.54,14.8,0.29,0.4,0,3.2,0],
+["A0621",209,75,82,63,10.11,11.6,0.19,14.4,0,6.3,1],
+["A0622",171,60.6,8,47,5.49,11.6,0.84,13.3,2,10.1,2],
+["A0623",142,73.7,41,52,7,9.8,0.95,19.3,4,8.9,2],
+["A0624",224,85.2,90,90,9.15,17.6,0.44,6,0,3.1,0],
+["A0625",225,82.2,92,94,11.42,17,0.28,3.5,0,4.1,0],
+["A0626",229,78.6,95,87,11.55,15.8,0.37,2.1,0,4,1],
+["A0627",227,73.6,47,80,9.54,14.1,0.66,9.7,1,3.8,1],
+["A0628",249,79.4,42,32,5.94,9.4,0.3,24,3,12,2],
+["A0629",250,74.4,59,71,10.78,14.5,0.39,6.8,1,4.4,1],
+["A0630",229,82.3,77,74,10.06,13.5,0.51,10.8,0,5.6,1],
+["A0631",228,85.4,92,95,12.35,17,0.31,2,0,2.1,0],
+["A0632",140,61.7,45,69,7.04,10.5,0.58,13.9,3,6.9,2],
+["A0633",204,71,64,59,6.49,9,0.66,15.3,1,9.4,2],
+["A0634",202,76,59,62,7.22,14.2,0.48,8.2,4,3.9,1],
+["A0635",214,86.4,79,60,7.67,13.4,0.37,7.1,1,5,1],
+["A0636",242,86,86,81,11.06,16.5,0.33,2.5,0,2.8,0],
+["A0637",220,80,87,79,10.37,14.6,0.28,0.8,0,2.9,0],
+["A0638",220,78.3,76,88,11.45,15.9,0.22,5.7,0,4.4,0],
+["A0639",215,76.7,74,60,7.25,12.5,0.55,6.2,0,7.4,1],
+["A0640",217,83.1,87,89,11.05,16,0.35,1.8,0,2.6,0],
+["A0641",223,83.1,81,86,10.97,14.5,0.44,3.8,0,2.7,0],
+["A0642",219,75.6,41,69,5.54,10.2,0.38,9.1,5,8.7,2],
+["A0643",217,77.5,87,94,10.3,17.6,0.41,2.9,0,2.7,1],
+["A0644",163,59.2,46,39,10.07,8.5,0.45,24.8,4,12,2],
+["A0645",248,85.1,74,59,11.32,14.5,0.39,6.6,0,5.2,1],
+["A0646",246,75.4,65,71,5.86,13,0.56,8.5,0,7.2,1],
+["A0647",253,83.3,94,87,12.79,16.5,0.4,0,0,3.1,0],
+["A0648",209,64.7,25,39,6.2,8,0.51,14.4,5,9,2],
+["A0649",263,85.4,87,95,9.72,17.4,0.32,0,1,4.2,0],
+["A0650",163,70.1,69,56,4.5,12.4,0.69,28.4,2,7.9,2],
+["A0651",228,77.4,70,77,9,14.8,0.46,7,0,7.2,1],
+["A0652",240,74.6,45,82,7.8,15.8,0.45,5.6,1,5.6,1],
+["A0653",257,91.3,97,93,12.2,16.9,0.4,1.5,0,1.3,0],
+["A0654",168,81.9,52,43,7.12,13.7,0.29,13.2,2,8.2,2],
+["A0655",235,85.8,75,92,10.92,16.3,0.46,1.4,0,2.9,0],
+["A0656",224,87.1,88,83,10.71,16.3,0.33,1.9,0,2.7,0],
+["A0657",165,75.2,45,54,5.06,8,0.75,18.4,2,10.3,2],
+["A0658",141,64.2,52,52,9.3,8,0.89,18.4,1,11.1,2],
+["A0659",238,74.7,65,71,8.69,14.1,0.46,11.8,1,3.6,1],
+["A0660",120,63.5,46,39,9.34,12.5,0.54,25.1,2,10.6,2],
+["A0661",213,73.2,60,56,7.19,13.2,0.58,12.2,0,8,1],
+["A0662",197,68.8,36,52,5.52,17.1,0.56,16.9,1,7.6,1],
+["A0663",283,90.1,86,95,12.25,17.7,0.34,1,0,2.5,0],
+["A0664",238,87.3,94,86,9.88,17.8,0.16,1.4,0,2.3,0],
+["A0665",246,76,85,91,12.57,18.2,0.45,0,0,3.1,1],
+["A0666",220,72.1,81,81,7.59,13.7,0.55,11.9,1,4.4,1],
+["A0667",229,83.3,89,84,11.59,16.7,0.24,1.3,1,3.4,0],
+["A0668",183,77,79,53,6.34,13.7,0.4,13.1,0,4.8,1],
+["A0669",222,83.8,55,86,6.14,12.6,0.44,13.9,0,2.8,1],
+["A0670",236,87.4,89,86,10.85,16.2,0.26,3.1,0,1.1,0],
+["A0671",256,86.5,95,93,11.63,15.8,0.31,0.9,0,3.7,0],
+["A0672",194,77.2,70,72,11.7,15,0.36,4.3,0,7.8,1],
+["A0673",222,86.5,85,97,11.35,16.6,0.35,2.5,0,2.8,1],
+["A0674",244,74.7,92,80,7.19,16.5,0.56,4.1,0,8.2,2],
+["A0675",228,69.4,48,39,6.59,13.5,0.65,20.3,0,9.9,2],
+["A0676",172,78.9,32,35,7.56,8,0.69,25,5,7.2,2],
+["A0677",213,75.4,72,74,7.42,12.4,0.42,5.5,0,5.6,1],
+["A0678",232,83,90,67,9.47,12.9,0.55,6.1,0,6,1],
+["A0679",232,82.5,85,89,11.08,14.5,0.31,1.7,0,1.6,0],
+["A0680",172,64.6,60,49,6.01,11.6,0.65,27.8,3,7.3,2],
+["A0681",170,77,59,69,11.26,12.2,0.43,10.3,2,3.5,1],
+["A0682",144,68.2,41,44,6.63,10.9,0.73,12.3,2,5.3,2],
+["A0683",220,77.9,41,31,7.34,10.4,0.55,24.4,1,11.7,2],
+["A0684",167,70.3,92,45,7.61,8,0.49,11.9,0,9,2],
+["A0685",215,84.8,89,96,10.95,15.7,0.39,0.5,0,2.9,0],
+["A0686",216,67.4,66,58,9.09,12.1,0.36,10.2,1,3.9,1],
+["A0687",232,72.9,34,43,4.81,9.4,0.46,28.5,2,9.7,2],
+["A0688",142,68.5,48,38,8.34,9.9,0.62,26.6,2,8.9,2],
+["A0689",218,82.2,89,88,12.06,18.7,0.22,1.5,0,2.4,0],
+["A0690",171,58,31,44,7.94,10.6,0.41,10.7,1,11,2],
+["A0691",199,68.6,50,54,9.63,12.2,0.47,18,0,7.2,2],
+["A0692",219,74.3,70,48,7.42,13.7,0.52,5,1,4.9,1],
+["A0693",168,80.9,63,37,5.01,10.7,0.51,20,1,9.4,2],
+["A0694",198,76.6,54,59,9.05,12.2,0.55,10,0,2.6,1],
+["A0695",243,75.2,79,72,8.36,15.1,0.59,0.1,2,8.2,1],
+["A0696",211,68.7,44,20,4.5,11.2,0.66,22.9,3,8.7,2],
+["A0697",251,83.7,100,87,13.43,19.2,0.42,2.3,0,2.3,0],
+["A0698",289,75.9,58,48,10.67,13.6,0.38,14.3,3,8,1],
+["A0699",204,73.6,64,67,8.87,14,0.36,10.7,1,3.5,1],
+["A0700",209,81.8,81,63,10.41,12.7,0.18,3.7,0,3.4,1],
+["A0701",266,89,86,94,12.18,16.2,0.36,1.2,0,1.1,0],
+["A0702",271,80.2,81,86,12.4,16.4,0.37,1.3,0,2.4,0],
+["A0703",248,77.4,86,81,11.29,17.6,0.4,2.6,0,2.4,0],
+["A0704",224,70.3,73,74,8,12.8,0.34,4,1,8.1,1],
+["A0705",247,78.8,70,87,9.59,12,0.63,3.1,0,0.8,0],
+["A0706",249,82.4,94,90,13.5,16,0.27,0.2,0,2.1,0],
+["A0707",185,63.4,43,18,7.15,8,0.73,27.7,4,11.2,2],
+["A0708",170,80.6,68,68,9.94,13.6,0.52,7.8,2,4.7,1],
+["A0709",183,65.9,53,29,7.66,8,0.59,21.6,3,7.6,2],
+["A0710",205,67.2,40,44,6.64,9.3,0.37,6.1,3,7,2],
+["A0711",237,89.1,90,91,12.39,15.8,0.3,1.1,0,2.9,0],
+["A0712",164,68.7,42,100,8.17,11.2,0.6,21.4,4,11,2],
+["A0713",256,82.2,84,90,11.03,15.5,0.32,0.9,0,0.8,0],
+["A0714",283,85.2,89,85,11.76,16.9,0.43,2.6,0,2.5,0],
+["A0715",260,81.8,88,90,10.87,13.8,0.28,1.3,0,2,0],
+["A0716",245,81.1,87,100,13.5,18.6,0.44,1.8,0,2.7,0],
+["A0717",246,74.3,62,79,7.58,12.5,0.49,7.8,0,4.8,1],
+["A0718",196,70.4,56,52,7.83,11,0.59,6.6,1,6.7,2],
+["A0719",186,75.8,59,77,7.83,11.8,0.74,12.9,2,7.8,1],
+["A0720",276,81.2,86,87,12.41,17.8,0.31,1.4,0,1.8,0],
+["A0721",188,68,10,46,4.63,10.5,0.48,18.6,7,5.5,1],
+["A0722",255,88.2,88,89,10.31,17,0.39,0,0,3.3,0],
+["A0723",252,64.7,65,65,7.86,10,0.57,6.1,0,6.9,1],
+["A0724",293,83.9,78,94,13.16,17.7,0.25,0,0,2.2,1],
+["A0725",188,70.4,72,58,9.98,10.3,0.41,9.8,0,6.4,1],
+["A0726",189,75.2,71,68,9.79,14.1,0.39,7.6,1,5.9,1],
+["A0727",247,85.7,85,84,11.5,15.4,0.23,2.5,0,3,0],
+["A0728",234,90.2,95,91,12.46,16.8,0.26,1.9,0,2.5,0],
+["A0729",213,76.9,56,73,10.49,14.3,0.59,15.5,1,7.9,1],
+["A0730",171,80.1,55,75,6.87,14.9,0.62,8,1,5.5,1],
+["A0731",226,77.3,58,73,8.33,14.6,0.46,4.9,1,3.9,1],
+["A0732",164,75.7,68,63,11.37,14.1,0.39,13.6,1,4.9,1],
+["A0733",204,67,44,74,7.75,10.6,0.46,23.2,1,6.5,2],
+["A0734",254,83.7,87,93,10.48,16,0.27,2.7,0,3.2,0],
+["A0735",242,85.6,94,94,13.19,19.2,0.32,2.3,0,1.6,0],
+["A0736",152,58,42,47,7.47,8.4,0.82,23,4,10.7,2],
+["A0737",270,83.2,81,86,12.98,16.1,0.23,1.3,0,3.8,0],
+["A0738",150,62.5,33,67,6.36,11.1,0.57,11.4,4,7.5,2],
+["A0739",230,58,42,28,7.23,8,0.81,21.3,5,10.4,2],
+["A0740",264,84.1,89,83,8.9,13,0.4,6.9,0,3.6,1],
+["A0741",169,72.1,60,65,9.59,11,0.42,9.8,3,4.5,2],
+["A0742",136,70.8,32,66,6.35,12.2,0.64,32,1,7.8,1],
+["A0743",192,62.4,50,59,4.58,11.3,0.52,22.1,1,9.4,2],
+["A0744",238,77.4,87,85,10.93,15.7,0.38,3.5,0,4.1,0],
+["A0745",228,70.9,60,52,9.27,11.6,0.49,5.9,1,4.8,1],
+["A0746",216,70.9,82,80,9.92,13.5,0.45,4.4,0,4,1],
+["A0747",158,64.8,52,47,7.04,11.5,0.54,7.7,1,10.6,2],
+["A0748",220,80.9,98,85,10.43,16.7,0.44,3.9,0,2.9,0],
+["A0749",164,58,37,65,6.86,9.2,0.44,23.5,4,11,1],
+["A0750",233,78.6,85,82,10.8,17.3,0.22,4.1,0,3.6,0],
+["A0751",298,87.8,100,92,12.58,18.2,0.39,0,0,1.1,0],
+["A0752",265,78,69,51,9.82,11.9,0.54,11.7,1,9.4,1],
+["A0753",248,84,68,89,8.21,17.5,0.16,2.4,0,7.1,1],
+["A0754",271,81,98,89,11.87,13.7,0.22,1,0,2,0],
+["A0755",192,67.8,51,73,7.61,14.5,0.44,8.5,3,4.7,1],
+["A0756",180,83.4,81,68,7.45,13.1,0.36,15.1,2,4.3,1],
+["A0757",242,71.4,45,46,5.19,10.2,0.68,18.5,5,10.9,2],
+["A0758",265,88.5,91,89,11.64,17.8,0.15,0,0,2.8,0],
+["A0759",186,78.9,83,73,9.47,12.7,0.45,6.6,2,4.8,1],
+["A0760",216,78.2,82,83,10.74,14.1,0.44,12.2,1,4.4,1],
+["A0761",241,76.3,89,77,10.76,14.8,0.21,1.7,0,3.4,0],
+["A0762",292,80.7,99,76,12.61,15.7,0.39,0.3,0,3.5,0],
+["A0763",253,88.1,97,98,11.64,17.1,0.35,2.5,0,1.5,0],
+["A0764",273,80.7,80,80,12.44,16.2,0.31,2.1,1,4.4,0],
+["A0765",191,76.1,56,57,9.2,13.7,0.49,8.4,1,8.3,2],
+["A0766",160,79.1,84,58,11.03,15.1,0.66,8.5,1,3.8,1],
+["A0767",140,67.7,48,29,7.16,8,0.28,13.9,0,8.3,2],
+["A0768",197,82.7,65,93,13.28,14.9,0.4,6,1,5.8,1],
+["A0769",264,78.6,85,76,11.59,16.6,0.38,1.6,0,3.1,0],
+["A0770",168,63,74,53,5.29,10.1,0.57,13.2,1,6.2,2],
+["A0771",169,70.3,39,23,5.14,9.1,0.69,14.1,4,10.5,2],
+["A0772",193,74.9,69,60,9.37,14.2,0.51,7.8,1,8.7,1],
+["A0773",219,70.4,57,78,7.31,9.4,0.83,12.5,2,8.1,2],
+["A0774",231,85,82,85,11.25,17.2,0.31,4.1,0,2.5,0],
+["A0775",183,78.7,82,75,10.7,15.2,0.18,2.8,0,3.9,0],
+["A0776",245,79.1,88,86,11.61,15.5,0.37,3.2,0,4.4,1],
+["A0777",261,66.4,57,52,7.36,9.8,0.69,12.7,1,9.1,2],
+["A0778",139,59.7,43,13,8.13,9.9,0.65,20.6,0,5.4,2],
+["A0779",211,83.8,92,91,12.44,17.9,0.37,1.4,0,3.1,0],
+["A0780",264,75.5,59,65,4.5,13.6,0.65,17.3,2,8.8,2],
+["A0781",194,76.5,78,100,9.11,16.8,0.37,7.1,1,8.6,1],
+["A0782",208,77.9,85,85,9.96,16.1,0.41,2.7,0,3.9,0],
+["A0783",199,58.4,22,29,4.97,8.4,0.61,28.3,4,12,2],
+["A0784",239,84.9,85,93,11.32,14.7,0.42,1.7,0,2.7,0],
+["A0785",204,73.8,65,87,9.92,11.8,0.38,6.6,0,6.9,1],
+["A0786",197,76.2,28,46,8.24,8,0.52,14.8,4,11,2],
+["A0787",162,63.5,56,46,5.62,9.2,0.89,27,0,9.2,2],
+["A0788",190,81.5,65,72,9.05,12.9,0.28,6.2,0,5.8,1],
+["A0789",232,64.5,35,35,4.88,8,0.55,32,4,7.1,2],
+["A0790",240,81.2,88,84,10.58,16.2,0.4,1.8,0,3.5,0],
+["A0791",201,77.2,72,73,11.17,15.2,0.53,5,0,6.2,1],
+["A0792",239,66.2,84,47,7.64,11.5,0.47,9.2,2,4.7,1],
+["A0793",235,85.2,94,89,12.58,18,0.42,3.6,0,3.1,0],
+["A0794",227,58.9,29,37,6.29,11,0.68,26.8,2,8.5,2],
+["A0795",147,72.2,60,61,7.64,11.2,0.57,5.8,3,5.7,2],
+["A0796",194,67.1,72,51,5.4,8.1,0.74,23,2,7.7,2],
+["A0797",286,81,79,79,12.02,15.8,0.44,2.2,1,3.8,0],
+["A0798",259,84.3,85,96,11.91,17.2,0.49,0,0,1.3,0],
+["A0799",249,87.3,90,91,12.3,16.7,0.35,0.5,0,3.1,0],
+["A0800",176,65.4,62,57,10.81,10.8,0.37,7.2,2,5.6,1],
+["A0801",237,86.1,82,90,11.68,16.2,0.37,2.7,0,4.8,0],
+["A0802",244,82.2,89,78,9.99,14.7,0.31,3,0,5,0],
+["A0803",232,77.6,71,70,8.81,11.3,0.43,10.3,0,4.2,1],
+["A0804",224,74.5,69,62,9.93,14.5,0.35,8.3,3,3.3,1],
+["A0805",238,85.5,83,86,9.7,15.5,0.35,4,0,0.8,0],
+["A0806",198,74.5,87,83,11.62,16.7,0.29,2.8,0,4.9,0],
+["A0807",261,83,85,91,11.42,17.1,0.41,1.2,0,4.1,0],
+["A0808",248,75.7,86,79,10.81,16.4,0.39,1.9,0,2.6,0],
+["A0809",190,83.7,74,78,7.19,13.5,0.47,5.4,0,3.9,1],
+["A0810",208,64.3,48,82,6.42,14.7,0.62,22.4,1,9.5,2],
+["A0811",193,74.9,81,76,9.23,14.2,0.48,4.7,0,4.6,1],
+["A0812",221,82,93,93,10.21,17.1,0.3,1.1,0,4.5,0],
+["A0813",277,85.1,93,83,12.33,17.8,0.37,1,0,2.8,0],
+["A0814",273,85.8,85,85,10.52,16.6,0.33,2.9,0,3.9,0],
+["A0815",207,82.6,99,91,11.12,17.4,0.31,1.1,0,3.2,0],
+["A0816",202,79.2,93,83,10.77,16.6,0.67,5.5,0,4.6,1],
+["A0817",175,66.6,54,56,6.46,10.2,0.86,14.7,2,11.2,2],
+["A0818",186,74.6,75,57,9.3,14.2,0.49,6.1,0,6.3,1],
+["A0819",247,80.3,99,83,12.22,17.6,0.34,1.2,0,3.6,0],
+["A0820",206,74,51,72,8.98,13.4,0.59,11.5,1,4.2,1],
+["A0821",232,70.3,49,69,9.44,15.8,0.5,7.9,1,9.4,1],
+["A0822",261,69.2,60,56,8.64,14.4,0.42,1,1,5.5,1],
+["A0823",188,63.1,26,46,6.43,9.5,0.65,17.8,3,12,2],
+["A0824",239,79.3,75,81,10.57,11.7,0.24,6.1,0,6.4,1],
+["A0825",259,82.1,80,93,11.42,16.4,0.31,0,0,1.4,0],
+["A0826",237,77.8,52,85,7.41,12.7,0.59,8.5,1,3,1],
+["A0827",264,84.6,94,91,12.33,17.7,0.31,0,0,2.4,0],
+["A0828",219,84.5,81,72,9.31,16.3,0.34,9.9,1,5.6,1],
+["A0829",191,77.4,69,73,8.6,11.6,0.54,6.8,1,7.6,1],
+["A0830",209,62.8,68,32,6.7,10.9,0.79,8.4,1,9.2,2],
+["A0831",276,86.9,87,94,12.29,16.6,0.32,1.7,0,1.6,0],
+["A0832",150,68,37,65,5.44,10,0.4,11.1,3,8.7,2],
+["A0833",225,76.4,57,60,9.04,14.5,0.49,7.8,0,3.2,2],
+["A0834",238,80.4,88,92,11.84,17.3,0.34,2.1,0,1.8,0],
+["A0835",252,87.6,90,81,10.89,16.4,0.32,2.7,0,2.8,0],
+["A0836",201,67.4,55,52,8.02,9.8,0.61,32,4,10.2,2],
+["A0837",171,71.4,31,31,6.81,8.7,0.66,21.7,4,10.3,2],
+["A0838",181,79.3,67,61,8.73,15,0.47,6.9,2,6,1],
+["A0839",161,61.7,35,44,5.52,10.2,0.86,28.6,5,7.4,2],
+["A0840",223,72.5,70,81,8.46,15.4,0.6,8.2,0,6.5,1],
+["A0841",264,86.7,81,87,10.67,16.3,0.29,0.7,0,3.3,0],
+["A0842",238,80.8,87,87,10.67,14.6,0.66,5.3,0,7.2,1],
+["A0843",219,65.1,34,52,4.52,8,0.44,13,3,8.8,2],
+["A0844",259,77.6,80,50,8.51,13.4,0.33,7.3,1,4.9,1],
+["A0845",172,83.3,64,71,9.09,13.1,0.27,4.9,0,4,1],
+["A0846",225,71.4,56,78,10.46,13.9,0.51,6.8,0,5.7,1],
+["A0847",181,65.2,38,80,7.32,13.2,0.74,12,1,10.8,2],
+["A0848",231,86.1,84,78,10.3,14.7,0.26,2.1,0,4.1,0],
+["A0849",241,86.3,78,99,12.58,16.6,0.34,3,0,4.4,0],
+["A0850",274,74.3,86,77,9.28,13.3,0.3,0.3,0,7.3,1],
+["A0851",232,69.5,41,47,6.28,8,0.62,19.8,0,10.2,2],
+["A0852",225,67.5,63,67,7.7,13.7,0.48,4.9,1,7.3,1],
+["A0853",252,85.1,94,92,12.44,16.4,0.38,0.2,0,3.5,0],
+["A0854",216,68.2,67,79,10.5,13.9,0.37,2.2,0,4.5,1],
+["A0855",155,64.1,9,65,7.74,14.4,0.59,10.2,1,11.1,2],
+["A0856",266,86.2,96,83,12.7,15.4,0.29,1.8,0,3.2,0],
+["A0857",154,78.6,50,34,4.8,10.2,0.47,15.9,3,10.9,2],
+["A0858",153,65.7,20,13,4.72,11,0.53,29.6,3,8,2],
+["A0859",250,80.7,83,92,10.77,18.7,0.35,0,0,2.7,0],
+["A0860",172,80.7,29,65,6.07,8.8,0.68,8.7,1,10.6,2],
+["A0861",213,77.1,64,78,8.29,12.2,0.37,5.5,0,3.1,1],
+["A0862",242,76.3,54,60,5.79,13,0.63,24.8,2,7.7,2],
+["A0863",270,87.9,99,94,10.85,17.4,0.34,0.1,0,2.5,0],
+["A0864",199,83.2,95,83,11.48,15.2,0.37,2.3,0,3.5,0],
+["A0865",224,73.6,66,64,10.55,13.9,0.53,5.6,0,3,1],
+["A0866",216,69.5,62,76,6.05,8.9,0.44,11,4,9.7,2],
+["A0867",176,77.6,75,63,7.34,14,0.36,11.2,1,7.7,1],
+["A0868",148,69.8,59,44,6.84,9.6,0.76,21.7,3,9,2],
+["A0869",176,67.5,63,74,9.85,14.5,0.23,4.1,0,6.5,1],
+["A0870",179,66.7,62,73,6.93,14.6,0.33,9.8,1,8.8,1],
+["A0871",227,71,67,83,9.37,14.3,0.74,3.2,0,6.4,1],
+["A0872",258,84.7,74,50,9.71,15.8,0.41,0,0,4.3,1],
+["A0873",179,59.8,54,21,7.72,8,0.71,29.2,3,12,2],
+["A0874",145,58.1,63,39,6.77,10.2,0.42,5.7,2,8.7,2],
+["A0875",204,68,23,44,6.44,9.1,0.69,13.3,1,11.1,2],
+["A0876",223,77.4,60,71,8.31,12.5,0.65,10.7,0,6.1,1],
+["A0877",169,58,39,31,6.94,10.1,0.69,11.4,2,10.5,2],
+["A0878",168,62.8,46,63,6.19,11.9,0.31,11.1,6,7.3,2],
+["A0879",173,73.9,56,56,8.86,10.9,0.56,12.2,4,6.1,2],
+["A0880",223,81.9,88,96,11.31,15.4,0.24,0.9,0,1.6,0],
+["A0881",185,72.5,48,50,9.87,13.5,0.44,0.7,0,9.6,2],
+["A0882",124,59.6,46,58,4.5,8,0.87,16,4,12,2],
+["A0883",144,69.3,42,38,6.45,8,0.81,19,7,12,2],
+["A0884",170,76.7,67,76,7.93,13.9,0.54,8,0,7.4,1],
+["A0885",231,79.6,85,79,10.65,14.8,0.51,0,0,4,1],
+["A0886",199,60.8,53,51,6.92,9.1,0.49,16.8,3,7.7,2],
+["A0887",290,80.2,93,90,11.19,15.1,0.37,0,0,3,0],
+["A0888",257,79.5,89,79,9.96,15.2,0.39,4.8,0,2.9,0],
+["A0889",161,67.6,37,35,4.5,10.5,0.68,31.1,4,10.2,2],
+["A0890",290,80,92,95,11.88,17.2,0.29,1.5,0,2.7,0],
+["A0891",210,79,71,64,9.08,17,0.65,15.8,0,4,1],
+["A0892",251,80.3,85,79,10.24,17.2,0.38,2.6,1,3.2,0],
+["A0893",249,79.5,68,78,10.28,13.9,0.66,7.4,0,5.5,1],
+["A0894",244,78.3,88,68,10.45,12.5,0.32,4.8,1,6.4,1],
+["A0895",236,85.6,84,94,11.07,17,0.3,0.8,0,4,0],
+["A0896",191,66.3,49,38,4.5,13.9,0.61,30.8,1,7.3,2],
+["A0897",197,80.9,76,54,8.81,13.3,0.54,9.4,2,6.2,1],
+["A0898",282,84.5,97,100,10.31,16.8,0.24,1.5,0,2.1,0],
+["A0899",221,67.9,37,31,7.03,12.5,0.66,18.4,4,7.6,2],
+["A0900",164,80.8,74,68,10.32,13.8,0.22,8.1,0,4.1,1]
+];
+window.APPLE_MODELS = {"meta": {"trained_at": "2026-11-03 10:59:06", "n_samples": 900, "n_features": 10, "keys": ["weight", "diameter", "color", "smooth", "firmness", "brix", "acidity", "defect", "pest", "waterloss"], "classes": ["perfect", "good", "bad"], "k_folds": 5, "baseline_accuracy": 0.3456, "tree_depth": 6, "tree_nodes": 33, "strictness_bias": 1.2, "label_noise": 0.05}, "linear": {"mean": [214.148889, 75.834222, 67.603333, 68.898889, 9.113333, 13.556778, 0.464356, 8.895, 1.117778, 5.855222], "scale": [37.949031, 7.774146, 20.828116, 20.39787, 2.407116, 2.854266, 0.166268, 8.062023, 1.53533, 2.965596], "W": [[0.50713, 0.78032, 0.60181, 0.65707, 0.85275, 0.78325, -0.77307, -0.96651, 0.0613, -1.12152], [-0.01356, -0.22956, -0.12963, 0.11388, -0.06403, -0.09599, 0.14099, 0.12208, -0.11619, -0.05671], [-0.49357, -0.55076, -0.47217, -0.77095, -0.78872, -0.68725, 0.63209, 0.84443, 0.05489, 1.17824]], "b": [-1.89493, 2.24567, -0.35074], "feature_importance": [0.06918, 0.10645, 0.0821, 0.10517, 0.11633, 0.10685, 0.10546, 0.13185, 0.01585, 0.16074]}, "tree": {"root": {"n": 900, "gini": 0.66644, "proba": [0.32778, 0.34556, 0.32667], "counts": [295, 311, 294], "feature": 7, "threshold": 3.95, "gain": 0.2255, "left": {"n": 340, "gini": 0.30099, "proba": [0.82059, 0.15882, 0.02059], "counts": [279, 54, 7], "feature": 4, "threshold": 9.41, "gain": 0.11256, "left": {"n": 35, "gini": 0.37224, "proba": [0.05714, 0.77143, 0.17143], "counts": [2, 27, 6], "feature": 5, "threshold": 13.0, "gain": 0.09646, "left": {"n": 12, "gini": 0.5, "proba": [0.0, 0.5, 0.5], "counts": [0, 6, 6], "leaf": true, "label": 1}, "right": {"n": 23, "gini": 0.15879, "proba": [0.08696, 0.91304, 0.0], "counts": [2, 21, 0], "leaf": true, "label": 1}}, "right": {"n": 305, "gini": 0.16733, "proba": [0.9082, 0.08852, 0.00328], "counts": [277, 27, 1], "feature": 1, "threshold": 77.75, "gain": 0.03448, "left": {"n": 26, "gini": 0.5355, "proba": [0.46154, 0.5, 0.03846], "counts": [12, 13, 1], "feature": 5, "threshold": 15.55, "gain": 0.26923, "left": {"n": 13, "gini": 0.27219, "proba": [0.07692, 0.84615, 0.07692], "counts": [1, 11, 1], "leaf": true, "label": 1}, "right": {"n": 13, "gini": 0.26036, "proba": [0.84615, 0.15385, 0.0], "counts": [11, 2, 0], "leaf": true, "label": 0}}, "right": {"n": 279, "gini": 0.09532, "proba": [0.94982, 0.05018, 0.0], "counts": [265, 14, 0], "feature": 7, "threshold": 3.05, "gain": 0.00537, "left": {"n": 257, "gini": 0.06759, "proba": [0.96498, 0.03502, 0.0], "counts": [248, 9, 0], "feature": 6, "threshold": 0.425, "gain": 0.00614, "left": {"n": 241, "gini": 0.04063, "proba": [0.97925, 0.02075, 0.0], "counts": [236, 5, 0], "leaf": true, "label": 0}, "right": {"n": 16, "gini": 0.375, "proba": [0.75, 0.25, 0.0], "counts": [12, 4, 0], "leaf": true, "label": 0}}, "right": {"n": 22, "gini": 0.35124, "proba": [0.77273, 0.22727, 0.0], "counts": [17, 5, 0], "leaf": true, "label": 0}}}}, "right": {"n": 560, "gini": 0.52591, "proba": [0.02857, 0.45893, 0.5125], "counts": [16, 257, 287], "feature": 7, "threshold": 12.25, "gain": 0.21563, "left": {"n": 300, "gini": 0.39131, "proba": [0.05, 0.75333, 0.19667], "counts": [15, 226, 59], "feature": 9, "threshold": 8.05, "gain": 0.12157, "left": {"n": 249, "gini": 0.25129, "proba": [0.06024, 0.85944, 0.08032], "counts": [15, 214, 20], "feature": 8, "threshold": 2.5, "gain": 0.04353, "left": {"n": 231, "gini": 0.18403, "proba": [0.06061, 0.90043, 0.03896], "counts": [14, 208, 9], "feature": 5, "threshold": 15.75, "gain": 0.01735, "left": {"n": 209, "gini": 0.12724, "proba": [0.03349, 0.93301, 0.03349], "counts": [7, 195, 7], "leaf": true, "label": 1}, "right": {"n": 22, "gini": 0.54132, "proba": [0.31818, 0.59091, 0.09091], "counts": [7, 13, 2], "leaf": true, "label": 1}}, "right": {"n": 18, "gini": 0.51235, "proba": [0.05556, 0.33333, 0.61111], "counts": [1, 6, 11], "leaf": true, "label": 2}}, "right": {"n": 51, "gini": 0.35986, "proba": [0.0, 0.23529, 0.76471], "counts": [0, 12, 39], "feature": 6, "threshold": 0.515, "gain": 0.09698, "left": {"n": 23, "gini": 0.49905, "proba": [0.0, 0.47826, 0.52174], "counts": [0, 11, 12], "leaf": true, "label": 2}, "right": {"n": 28, "gini": 0.06888, "proba": [0.0, 0.03571, 0.96429], "counts": [0, 1, 27], "feature": 2, "threshold": 47.5, "gain": 0.0034, "left": {"n": 16, "gini": 0.0, "proba": [0.0, 0.0, 1.0], "counts": [0, 0, 16], "leaf": true, "label": 2}, "right": {"n": 12, "gini": 0.15278, "proba": [0.0, 0.08333, 0.91667], "counts": [0, 1, 11], "leaf": true, "label": 2}}}}, "right": {"n": 260, "gini": 0.21678, "proba": [0.00385, 0.11923, 0.87692], "counts": [1, 31, 228], "feature": 2, "threshold": 74.5, "gain": 0.03828, "left": {"n": 248, "gini": 0.169, "proba": [0.00403, 0.08871, 0.90726], "counts": [1, 22, 225], "feature": 5, "threshold": 13.55, "gain": 0.02447, "left": {"n": 227, "gini": 0.10798, "proba": [0.0, 0.05727, 0.94273], "counts": [0, 13, 214], "feature": 3, "threshold": 64.5, "gain": 0.01167, "left": {"n": 194, "gini": 0.05022, "proba": [0.0, 0.02577, 0.97423], "counts": [0, 5, 189], "leaf": true, "label": 2}, "right": {"n": 33, "gini": 0.36731, "proba": [0.0, 0.24242, 0.75758], "counts": [0, 8, 25], "leaf": true, "label": 2}}, "right": {"n": 21, "gini": 0.53968, "proba": [0.04762, 0.42857, 0.52381], "counts": [1, 9, 11], "leaf": true, "label": 2}}, "right": {"n": 12, "gini": 0.375, "proba": [0.0, 0.75, 0.25], "counts": [0, 9, 3], "leaf": true, "label": 1}}}}, "feature_importance": [0.0, 0.02282, 0.02179, 0.00574, 0.08302, 0.04437, 0.01415, 0.70547, 0.02351, 0.07912], "max_depth": 5, "min_samples_leaf": 12}, "metrics": {"linear": {"accuracy": 0.9167, "macro_f1": 0.9172, "per_class": {"perfect": {"precision": 0.9286, "recall": 0.9695, "f1": 0.9486, "support": 295}, "good": {"precision": 0.8782, "recall": 0.881, "f1": 0.8796, "support": 311}, "bad": {"precision": 0.9464, "recall": 0.9014, "f1": 0.9233, "support": 294}}, "n": 900, "confusion": [[286, 9, 0], [22, 274, 15], [0, 29, 265]], "fold_acc": [0.9448, 0.8944, 0.9389, 0.9111, 0.8939], "fold_mean": 0.9166, "fold_std": 0.0216}, "tree": {"accuracy": 0.8522, "macro_f1": 0.8535, "per_class": {"perfect": {"precision": 0.9037, "recall": 0.922, "f1": 0.9128, "support": 295}, "good": {"precision": 0.7795, "recall": 0.8071, "f1": 0.793, "support": 311}, "bad": {"precision": 0.8809, "recall": 0.8299, "f1": 0.8546, "support": 294}}, "n": 900, "confusion": [[272, 22, 1], [28, 251, 32], [1, 49, 244]], "fold_acc": [0.884, 0.8778, 0.8444, 0.8167, 0.838], "fold_mean": 0.8522, "fold_std": 0.0253}, "learning_curve": {"fractions": [0.1, 0.2, 0.35, 0.5, 0.7, 1.0], "n_train": [72, 144, 252, 360, 504, 721], "linear_train": [0.9722, 0.9444, 0.9484, 0.9333, 0.9345, 0.9307], "linear_test": [0.8101, 0.8771, 0.8715, 0.8883, 0.8994, 0.9106], "tree_train": [0.8889, 0.875, 0.8929, 0.9028, 0.8948, 0.9029], "tree_test": [0.7765, 0.7542, 0.8045, 0.8045, 0.8324, 0.8212]}}, "config": {"linear": {"epochs": 220, "lr": 1.2, "l2": 0.0015}, "tree": {"max_depth": 5, "min_samples_leaf": 12}}};
+/* ==DATA:END== */
+</script>
+
+<script>
+(function () {
+  'use strict';
+
+  var F = window.APPLE_FEATURES, CL = window.APPLE_CLASSES, SM = window.APPLE_SAMPLES,
+      M = window.APPLE_MODELS, META = window.APPLE_META;
+
+  var TUNE = {
+    strictnessBias: (M.meta && M.meta.strictness_bias) || 1.2,
+    confHigh: 0.80,
+    confLow: 0.55,
+    histBins: 14,
+    tableRows: 10
+  };
+
+  var state = { x: new Array(F.length).fill(0), strict: 0, model: 'linear', filter: -1, offset: 0 };
+  var $ = function (id) { return document.getElementById(id); };
+  var num = function (v, d) { return d === 0 ? String(Math.round(v)) : Number(v).toFixed(d); };
+  var cName = function (i) { return CL[i].name; };
+  var cColor = function (i) { return CL[i].color; };
+
+  /* ---------------- 滑杆 ---------------- */
+  function buildFeats() {
+    var html = '';
+    for (var i = 0; i < F.length; i++) {
+      var f = F[i];
+      html += '<div class="feat"><div class="row"><label for="f' + i + '">' + f.name +
+        '</label><span class="unit">' + f.unit + '</span><span class="val" id="v' + i + '">—</span></div>' +
+        '<input type="range" id="f' + i + '" min="' + f.min + '" max="' + f.max + '" step="' + f.step +
+        '" value="' + f.min + '"><div class="hint">' + f.hint + '</div></div>';
+    }
+    $('feats').innerHTML = html;
+    F.forEach(function (f, j) {
+      var el = $('f' + j);
+      el.addEventListener('input', function () {
+        state.x[j] = Number(el.value);
+        paintSlider(j);
+        render();
+      });
+    });
+  }
+
+  function paintSlider(i) {
+    var f = F[i], el = $('f' + i);
+    el.style.setProperty('--p', (((state.x[i] - f.min) / (f.max - f.min)) * 100).toFixed(2) + '%');
+    el.value = state.x[i];
+    $('v' + i).textContent = num(state.x[i], f.dec);
+  }
+
+  function setX(arr) {
+    state.x = arr.slice();
+    F.forEach(function (_, i) { paintSlider(i); });
+    render();
+  }
+
+  /* ---------------- 推理 ---------------- */
+  function stdX(x) {
+    return x.map(function (v, i) { return (v - M.linear.mean[i]) / M.linear.scale[i]; });
+  }
+
+  function softmax(z) {
+    var m = Math.max.apply(null, z);
+    var e = z.map(function (v) { return Math.exp(v - m); });
+    var s = e.reduce(function (a, b) { return a + b; }, 0);
+    return e.map(function (v) { return v / s; });
+  }
+
+  function biasVector() {
+    var k = TUNE.strictnessBias * state.strict;
+    return [-k, 0, k];
+  }
+
+  function linearProba(x) {
+    var z = stdX(x), b = biasVector();
+    var logits = M.linear.W.map(function (w, c) {
+      var s = M.linear.b[c] + b[c];
+      for (var i = 0; i < w.length; i++) s += w[i] * z[i];
+      return s;
+    });
+    return softmax(logits);
+  }
+
+  function linearContrib(x, cls) {
+    var z = stdX(x), w = M.linear.W[cls];
+    return F.map(function (f, i) { return { i: i, v: w[i] * z[i] }; })
+      .sort(function (a, b) { return Math.abs(b.v) - Math.abs(a.v); })
+      .slice(0, 5);
+  }
+
+  function treeWalk(x) {
+    var node = M.tree.root, path = [], guard = 0;
+    while (!node.leaf && guard++ < 40) {
+      var goLeft = x[node.feature] <= node.threshold;
+      path.push({ f: node.feature, thr: node.threshold, val: x[node.feature], left: goLeft, n: node.n });
+      node = goLeft ? node.left : node.right;
+    }
+    path.push({ leaf: true, n: node.n, counts: node.counts, proba: node.proba });
+    return { proba: node.proba, path: path };
+  }
+
+  function argmax(a) {
+    var k = 0;
+    for (var i = 1; i < a.length; i++) if (a[i] > a[k]) k = i;
+    return k;
+  }
+
+  /* ---------------- 结果渲染 ---------------- */
+  function render() {
+    var pLin = linearProba(state.x);
+    var pTree = treeWalk(state.x);
+    var active = state.model === 'linear' ? pLin : pTree.proba;
+    var k = argmax(active), p = active[k];
+    var otherName = state.model === 'linear' ? '决策树' : '线性模型';
+    var otherP = state.model === 'linear' ? pTree.proba : pLin;
+    var ok = argmax(otherP);
+
+    var ring = $('ring');
+    ring.textContent = Math.round(p * 100) + '%';
+    ring.style.color = cColor(k);
+    ring.style.background = cColor(k) + '14';
+    ring.style.borderColor = cColor(k) + '55';
+
+    $('verdictName').textContent = '这一颗：' + cName(k);
+    $('verdictName').style.color = cColor(k);
+    $('verdictMeta').textContent = CL[k].desc + ' · p(' + cName(k) + ') = ' + p.toFixed(4);
+
+    var barHtml = '';
+    for (var i = 0; i < CL.length; i++) {
+      barHtml += '<div class="bar-row"><span class="nm">' + CL[i].name + '</span>' +
+        '<span class="bar-track"><span class="bar-fill" style="width:' + (active[i] * 100).toFixed(2) +
+        '%;background:' + CL[i].color + '"></span></span>' +
+        '<span class="pc">' + (active[i] * 100).toFixed(1) + '%</span></div>';
+    }
+    $('bars').innerHTML = barHtml;
+
+    if (state.model === 'linear') {
+      var contrib = linearContrib(state.x, k);
+      var maxAbs = Math.max.apply(null, contrib.map(function (c) { return Math.abs(c.v); })) || 1;
+      var rows = '';
+      contrib.forEach(function (c) {
+        var w = (Math.abs(c.v) / maxAbs) * 50;
+        var pos = c.v >= 0;
+        rows += '<div class="c-row"><span>' + F[c.i].name + '</span><span class="c-bar"><i style="width:' +
+          w.toFixed(1) + '%;' + (pos ? 'left:50%;background:#2f9e6f' : 'right:50%;background:#d9695f') +
+          '"></i></span><span class="c-val">' + (pos ? '+' : '') + c.v.toFixed(2) + '</span></div>';
+      });
+      $('explain').innerHTML = '<h4>线性模型：哪几个特征在推它往前走</h4><div class="contrib">' + rows +
+        '</div><p class="note">贡献值 = w<sub>' + cName(k) + '</sub> · 标准化后的特征值；绿=支持判定，红=反对。</p>';
+    } else {
+      var chips = '';
+      pTree.path.forEach(function (s) {
+        chips += s.leaf
+          ? '<span class="step leaf">→ ' + cName(argmax(s.proba)) + '（叶结点 n=' + s.n + '）</span>'
+          : '<span class="step">' + F[s.f].name + ' ' + s.val.toFixed(1) + ' ' + (s.left ? '≤' : '>') +
+            ' <b>' + s.thr.toFixed(1) + '</b></span>';
+      });
+      var leaf = pTree.path[pTree.path.length - 1];
+      $('explain').innerHTML = '<h4>决策树：它是顺着这条路走下来的</h4><div class="path">' + chips +
+        '</div><p class="note">路径 ' + (pTree.path.length - 1) + ' 层；叶结点类别分布 ' + leaf.counts.join(' / ') +
+        '（完美 / 良好 / 不好）。</p>';
+    }
+
+    var tag = p >= TUNE.confHigh ? '高置信' : (p < TUNE.confLow ? '边界样本，建议人工复核' : '中等置信');
+    $('agreeNote').innerHTML = tag + '　·　' + otherName + '同时判为 <b style="color:' + cColor(ok) + '">' +
+      cName(ok) + '</b>（' + (otherP[ok] * 100).toFixed(1) + '%）' +
+      (ok === k ? '，两模型一致 ✅' : '，两模型分歧 ⚠️');
+  }
+
+  /* ---------------- 三步翻页 ---------------- */
+  var Step = { i: 0 };
+
+  function showStep(i) {
+    Step.i = Math.max(0, Math.min(2, i));
+    var panels = document.querySelectorAll('#detect .panel');
+    for (var a = 0; a < panels.length; a++) {
+      panels[a].hidden = Number(panels[a].dataset.panel) !== Step.i;
+    }
+    var btns = document.querySelectorAll('#stepper .step-btn');
+    for (var b = 0; b < btns.length; b++) {
+      if (Number(btns[b].dataset.step) === Step.i) btns[b].classList.add('on');
+      else btns[b].classList.remove('on');
+    }
+    $('pagerInfo').textContent = '第 ' + (Step.i + 1) + ' / 3 步';
+    $('btnPrev').disabled = Step.i === 0;
+    $('btnNext').textContent = Step.i === 2 ? '重新检测 ↺' : '下一步 →';
+    if (Step.i === 2) render();
+  }
+
+  function initSteps() {
+    $('btnPrev').addEventListener('click', function () { if (Step.i > 0) showStep(Step.i - 1); });
+    $('btnNext').addEventListener('click', function () { showStep(Step.i === 2 ? 0 : Step.i + 1); });
+    var btns = document.querySelectorAll('#stepper .step-btn');
+    for (var i = 0; i < btns.length; i++) {
+      (function (el) {
+        el.addEventListener('click', function () { showStep(Number(el.dataset.step)); });
+      })(btns[i]);
+    }
+    showStep(0);
+  }
+
+  /* ---------------- 照片识别：像素 → 特征 ---------------- */
+  var Photo = { values: null, source: [], ready: false };
+  /* 每维特征的来源：image = 照片直接测量；est = 由外观弱相关推算 */
+  var SRC_MAP = ['image', 'image', 'image', 'image', 'est', 'est', 'est', 'image', 'image', 'est'];
+
+  function clampv(v, a, b) { return v < a ? a : (v > b ? b : v); }
+
+  function medianOf(arr) {
+    if (!arr.length) return 255;
+    arr.sort(function (x, y) { return x - y; });
+    return arr[arr.length >> 1];
+  }
+
+  /* RGB → HSV，H∈[0,360)，S,V∈[0,1] */
+  function hsvOf(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    var mx = Math.max(r, g, b), mn = Math.min(r, g, b), dd = mx - mn, hh = 0;
+    if (dd > 1e-6) {
+      if (mx === r) hh = 60 * (((g - b) / dd) % 6);
+      else if (mx === g) hh = 60 * ((b - r) / dd + 2);
+      else hh = 60 * ((r - g) / dd + 4);
+    }
+    if (hh < 0) hh += 360;
+    return [hh, mx <= 0 ? 0 : dd / mx, mx];
+  }
+
+  function photoFail(msg) {
+    $('photoMetrics').innerHTML = '<div class="err">' + msg + '</div>';
+  }
+
+  /* 核心：分割果实 → 统计颜色/缺陷/虫孔 → 折算成 10 维特征 */
+  function runPhoto(img) {
+    var stage = $('stage');
+    var MW = 420;
+    var iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+    if (!iw || !ih) { photoFail('这张图读不出来，换一张试试。'); return; }
+    var sc = Math.min(1, MW / Math.max(iw, ih));
+    var w = Math.max(8, Math.round(iw * sc)), h = Math.max(8, Math.round(ih * sc));
+    stage.width = w; stage.height = h;
+    stage.style.display = 'block';
+    $('photoEmpty').style.display = 'none';
+
+    var cx = stage.getContext('2d', { willReadFrequently: true });
+    cx.clearRect(0, 0, w, h);
+    cx.drawImage(img, 0, 0, w, h);
+    var idata = cx.getImageData(0, 0, w, h), px = idata.data, n = w * h;
+
+    /* 1. 背景色 = 图像 2px 边框环的中位数 */
+    var rs = [], gs = [], bs = [];
+    for (var y = 0; y < h; y++) {
+      for (var x = 0; x < w; x++) {
+        if (x < 2 || y < 2 || x > w - 3 || y > h - 3) {
+          var q = (y * w + x) * 4;
+          rs.push(px[q]); gs.push(px[q + 1]); bs.push(px[q + 2]);
+        }
+      }
+    }
+    var br = medianOf(rs), bgc = medianOf(gs), bb = medianOf(bs);
+
+    /* 2. 前景掩码：与背景色差足够大，或明显偏红 */
+    var mask = new Uint8Array(n), H = new Float32Array(n), S = new Float32Array(n), V = new Float32Array(n);
+    for (var i = 0, p = 0; i < n; i++, p += 4) {
+      var vr = px[p], vg = px[p + 1], vb = px[p + 2];
+      var dist = Math.abs(vr - br) + Math.abs(vg - bgc) + Math.abs(vb - bb);
+      var redness = vr - (vg + vb) / 2;
+      mask[i] = (dist > 74 || (redness > 26 && dist > 32)) ? 1 : 0;
+      var t = hsvOf(vr, vg, vb);
+      H[i] = t[0]; S[i] = t[1]; V[i] = t[2];
+    }
+
+    /* 3. 3×3 多数滤波去噪 */
+    var clean = new Uint8Array(n);
+    for (var yy = 0; yy < h; yy++) {
+      for (var xx = 0; xx < w; xx++) {
+        var c = 0, tot = 0;
+        for (var dy = -1; dy <= 1; dy++) {
+          for (var dx = -1; dx <= 1; dx++) {
+            var nx = xx + dx, ny = yy + dy;
+            if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+            tot++; c += mask[ny * w + nx];
+          }
+        }
+        clean[yy * w + xx] = (c * 2 > tot) ? 1 : 0;
+      }
+    }
+
+    /* 4. 最大连通域 = 果实 */
+    var seen = new Uint8Array(n), stack = new Int32Array(n), best = null, bestN = 0;
+    for (var s0 = 0; s0 < n; s0++) {
+      if (!clean[s0] || seen[s0]) continue;
+      var top = 0; stack[top++] = s0; seen[s0] = 1;
+      var comp = [];
+      while (top > 0) {
+        var ci = stack[--top];
+        comp.push(ci);
+        var cxi = ci % w, cyi = (ci - cxi) / w;
+        if (cxi > 0 && clean[ci - 1] && !seen[ci - 1]) { seen[ci - 1] = 1; stack[top++] = ci - 1; }
+        if (cxi < w - 1 && clean[ci + 1] && !seen[ci + 1]) { seen[ci + 1] = 1; stack[top++] = ci + 1; }
+        if (cyi > 0 && clean[ci - w] && !seen[ci - w]) { seen[ci - w] = 1; stack[top++] = ci - w; }
+        if (cyi < h - 1 && clean[ci + w] && !seen[ci + w]) { seen[ci + w] = 1; stack[top++] = ci + w; }
+      }
+      if (comp.length > bestN) { bestN = comp.length; best = comp; }
+    }
+    if (!best || bestN < n * 0.008) {
+      photoFail('没找到果实主体：可能背景太杂或果子太小。换成单果、纯色背景的照片，或点「用示例图演示」。');
+      return;
+    }
+
+    var inComp = new Uint8Array(n);
+    for (var k = 0; k < best.length; k++) inComp[best[k]] = 1;
+
+    /* 5. 从画布边界灌水，标出外部背景；剩下的非果实像素 = 果面上的洞（凹陷/病斑） */
+    var outside = new Uint8Array(n), st2 = new Int32Array(n), tp = 0;
+    function pushOut(idx) {
+      if (!inComp[idx] && !outside[idx]) { outside[idx] = 1; st2[tp++] = idx; }
+    }
+    for (var x2 = 0; x2 < w; x2++) { pushOut(x2); pushOut((h - 1) * w + x2); }
+    for (var y2 = 0; y2 < h; y2++) { pushOut(y2 * w); pushOut(y2 * w + w - 1); }
+    while (tp > 0) {
+      var oi = st2[--tp], ox = oi % w, oy = (oi - ox) / w;
+      if (ox > 0) pushOut(oi - 1);
+      if (ox < w - 1) pushOut(oi + 1);
+      if (oy > 0) pushOut(oi - w);
+      if (oy < h - 1) pushOut(oi + w);
+    }
+
+    /* 6. 洞的连通域（用于虫孔计数与缺陷面积） */
+    var hseen = new Uint8Array(n), st3 = new Int32Array(n);
+    var holeComps = [], holeTotal = 0;
+    for (var s3 = 0; s3 < n; s3++) {
+      if (inComp[s3] || outside[s3] || hseen[s3]) continue;
+      var t3 = 0; st3[t3++] = s3; hseen[s3] = 1;
+      var cells = 0, vsum = 0, minx = w, maxx = 0, miny = h, maxy = 0;
+      while (t3 > 0) {
+        var hi = st3[--t3];
+        cells++; vsum += V[hi];
+        var hx = hi % w, hy = (hi - hx) / w;
+        if (hx < minx) minx = hx; if (hx > maxx) maxx = hx;
+        if (hy < miny) miny = hy; if (hy > maxy) maxy = hy;
+        if (hx > 0 && !inComp[hi - 1] && !outside[hi - 1] && !hseen[hi - 1]) { hseen[hi - 1] = 1; st3[t3++] = hi - 1; }
+        if (hx < w - 1 && !inComp[hi + 1] && !outside[hi + 1] && !hseen[hi + 1]) { hseen[hi + 1] = 1; st3[t3++] = hi + 1; }
+        if (hy > 0 && !inComp[hi - w] && !outside[hi - w] && !hseen[hi - w]) { hseen[hi - w] = 1; st3[t3++] = hi - w; }
+        if (hy < h - 1 && !inComp[hi + w] && !outside[hi + w] && !hseen[hi + w]) { hseen[hi + w] = 1; st3[t3++] = hi + w; }
+      }
+      holeTotal += cells;
+      holeComps.push({ n: cells, meanV: vsum / cells, bw: maxx - minx + 1, bh: maxy - miny + 1 });
+    }
+
+    /* 7. 果实内部逐像素统计：着色、果锈、病斑 */
+    var defectFlag = new Uint8Array(n);
+    var redPx = 0, rustPx = 0, defectPx = 0;
+    for (var m0 = 0; m0 < best.length; m0++) {
+      var mi = best[m0], hv = H[mi], sv = S[mi], vv = V[mi];
+      if ((hv < 26 || hv > 334) && sv > 0.30 && vv > 0.18) redPx++;
+      if (hv >= 18 && hv <= 52 && sv >= 0.15 && sv <= 0.80 && vv >= 0.30 && vv <= 0.85) rustPx++;
+      if (vv < 0.26 || (hv > 8 && hv < 52 && sv > 0.22 && vv < 0.62)) { defectPx++; defectFlag[mi] = 1; }
+    }
+
+    /* 8. 折算特征 */
+    var compA = best.length, filled = compA + holeTotal;
+    var defectFrac = (defectPx + holeTotal) / filled;
+    var redFrac = redPx / compA;
+    var rustFrac = rustPx / compA;
+
+    var dpx = 2 * Math.sqrt(filled / Math.PI);
+    var fillRatio = dpx / Math.min(w, h);
+    var mm = clampv(58 + (fillRatio - 0.45) / 0.40 * 34, 58, 92);
+    var weight = clampv(246 * Math.pow(mm / 83.5, 3), 120, 340);
+    var color = clampv(redFrac * 118, 0, 100);
+    var defect = clampv(defectFrac * 100 * 1.15, 0, 32);
+    var smooth = clampv(98 - rustFrac * 240 - defectFrac * 160, 0, 100);
+    var pest = 0;
+    for (var hc = 0; hc < holeComps.length; hc++) {
+      var o = holeComps[hc];
+      var aspect = o.bw / Math.max(1, o.bh);
+      if (o.n > 0.00025 * filled && o.n < 0.012 * filled && o.meanV < 0.35 && aspect > 0.35 && aspect < 2.8) pest++;
+    }
+    pest = Math.min(8, pest);
+    var firmness = clampv(5.2 + smooth * 0.06 + color * 0.015, 4.5, 13.5);
+    var brix = clampv(9 + color * 0.075, 8, 19.5);
+    var acidity = clampv(0.75 - color * 0.0045, 0.12, 0.95);
+    var waterloss = clampv(2.2 + defect * 0.45, 0.8, 12);
+
+    var raw = [weight, mm, color, smooth, firmness, brix, acidity, defect, pest, waterloss];
+    Photo.values = raw.map(function (v, idx) { return Number(num(v, F[idx].dec)); });
+    Photo.source = SRC_MAP.slice();
+    Photo.ready = true;
+
+    /* 9. 可视化：把非果实区域压成浅灰，病斑描红 */
+    for (var pi = 0, pp = 0; pi < n; pi++, pp += 4) {
+      if (!inComp[pi]) {
+        var lum = 0.299 * px[pp] + 0.587 * px[pp + 1] + 0.114 * px[pp + 2];
+        var g2 = lum * 0.28 + 236 * 0.72;
+        px[pp] = px[pp + 1] = px[pp + 2] = g2;
+      } else if (defectFlag[pi]) {
+        px[pp] = px[pp] * 0.32 + 217 * 0.68;
+        px[pp + 1] = px[pp + 1] * 0.32 + 105 * 0.68;
+        px[pp + 2] = px[pp + 2] * 0.32 + 95 * 0.68;
+      }
+    }
+    cx.putImageData(idata, 0, 0);
+
+    setX(Photo.values);
+    renderPhotoMetrics({ fill: fillRatio, mm: mm, defectFrac: defectFrac, holes: holeComps.length });
+    addRecord('photo', makeThumb(stage));
+    var src = $('featSource');
+    if (src) {
+      src.style.display = 'block';
+      src.innerHTML = '这 10 个数值来自照片分析：着色度、光洁度、缺陷面积、虫孔数、果径、单果重为<b>图像实测</b>；' +
+        '硬度、糖度、酸度、失水率照片测不出，为<b>弱相关推算</b>——可直接拖动滑杆修正。';
+    }
+    showStep(1);
+  }
+
+  function renderPhotoMetrics(extra) {
+    var html = '<div class="pm">';
+    F.forEach(function (f, i) {
+      var tag = Photo.source[i] === 'image'
+        ? '<span class="badge-auto">图像实测</span>'
+        : '<span class="badge-est">图像推算</span>';
+      html += '<div class="pm-row"><span class="pm-name">' + f.name + '</span>' +
+        '<span class="pm-val">' + num(Photo.values[i], f.dec) + ' <small>' + f.unit + '</small></span>' +
+        tag + '</div>';
+    });
+    html += '</div>';
+    html += '<p class="note">果实占画面 ' + (extra.fill * 100).toFixed(0) + '% · 折合果径约 ' +
+      extra.mm.toFixed(1) + ' mm · 缺陷占果面 ' + (extra.defectFrac * 100).toFixed(1) +
+      '% · 检出凹陷/孔洞 ' + extra.holes + ' 处。数值已同步到下方滑杆，可手动修正。</p>';
+    $('photoMetrics').innerHTML = html;
+  }
+
+  /* 程序绘制的示例苹果，方便没有照片时一键演示 */
+  function drawSample() {
+    var c = document.createElement('canvas');
+    c.width = 380; c.height = 380;
+    var x = c.getContext('2d');
+    x.fillStyle = '#f4f2ed'; x.fillRect(0, 0, 380, 380);
+    var g = x.createRadialGradient(148, 138, 20, 190, 195, 155);
+    g.addColorStop(0, '#e2604f'); g.addColorStop(0.55, '#c53b32'); g.addColorStop(1, '#8f231d');
+    x.fillStyle = g;
+    x.beginPath(); x.ellipse(190, 202, 118, 126, 0, 0, Math.PI * 2); x.fill();
+    x.fillStyle = '#8a221c';
+    x.beginPath(); x.ellipse(190, 82, 25, 11, 0, 0, Math.PI * 2); x.fill();
+    x.strokeStyle = '#6b4a2b'; x.lineWidth = 7; x.lineCap = 'round';
+    x.beginPath(); x.moveTo(190, 82); x.quadraticCurveTo(198, 50, 212, 40); x.stroke();
+    x.fillStyle = '#4c8c4a';
+    x.beginPath(); x.ellipse(240, 60, 34, 15, -0.5, 0, Math.PI * 2); x.fill();
+    x.fillStyle = 'rgba(255,255,255,.20)';
+    x.beginPath(); x.ellipse(142, 152, 28, 44, -0.5, 0, Math.PI * 2); x.fill();
+    x.fillStyle = 'rgba(99,66,38,.88)';
+    x.beginPath(); x.ellipse(256, 238, 20, 15, 0.3, 0, Math.PI * 2); x.fill();
+    x.fillStyle = 'rgba(82,54,30,.78)';
+    x.beginPath(); x.ellipse(146, 272, 13, 10, -0.2, 0, Math.PI * 2); x.fill();
+    return c;
+  }
+
+  function loadFile(file) {
+    if (!file) return;
+    if (!/^image\//.test(file.type)) { photoFail('这不是图片文件（需要 JPG / PNG / WebP）。'); return; }
+    var url = URL.createObjectURL(file);
+    var img = new Image();
+    img.onload = function () {
+      runPhoto(img);
+      URL.revokeObjectURL(url);
+    };
+    img.onerror = function () {
+      photoFail('图片解码失败，可能是 HEIC 等浏览器不支持的格式，请转成 JPG 再试。');
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  }
+
+  function clearPhoto() {
+    var stage = $('stage');
+    stage.style.display = 'none';
+    $('photoEmpty').style.display = 'block';
+    $('photoMetrics').innerHTML = '';
+    var src = $('featSource');
+    if (src) { src.style.display = 'none'; src.innerHTML = ''; }
+    Photo.ready = false;
+    Photo.values = null;
+  }
+
+  function initPhoto() {
+    $('fileInput').addEventListener('change', function (e) {
+      if (e.target.files && e.target.files[0]) loadFile(e.target.files[0]);
+      e.target.value = '';
+    });
+
+    var dz = $('dropzone');
+    ['dragenter', 'dragover'].forEach(function (ev) {
+      dz.addEventListener(ev, function (e) { e.preventDefault(); dz.classList.add('over'); });
+    });
+    ['dragleave', 'dragend'].forEach(function (ev) {
+      dz.addEventListener(ev, function (e) { e.preventDefault(); dz.classList.remove('over'); });
+    });
+    dz.addEventListener('drop', function (e) {
+      e.preventDefault(); dz.classList.remove('over');
+      var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f) loadFile(f);
+    });
+
+    document.addEventListener('paste', function (e) {
+      var items = e.clipboardData && e.clipboardData.items;
+      if (!items) return;
+      for (var i = 0; i < items.length; i++) {
+        if (items[i].type && items[i].type.indexOf('image') === 0) {
+          loadFile(items[i].getAsFile());
+          break;
+        }
+      }
+    });
+
+    $('btnSample').addEventListener('click', function () { runPhoto(drawSample()); });
+    $('btnClear').addEventListener('click', clearPhoto);
+  }
+
+  /* ---------------- 检测记录（localStorage 持久化） ---------------- */
+  var RK = 'apple_lab_records_v1';
+  var Store = { data: [], ok: true };
+  var clearArmed = false;
+
+  function storageOK() {
+    try { localStorage.setItem('__probe', '1'); localStorage.removeItem('__probe'); return true; }
+    catch (e) { return false; }
+  }
+
+  function loadRecords() {
+    Store.ok = storageOK();
+    if (!Store.ok) { Store.data = []; return; }
+    try {
+      var raw = localStorage.getItem(RK);
+      var arr = raw ? JSON.parse(raw) : [];
+      Store.data = Array.isArray(arr) ? arr : [];
+    } catch (e) { Store.data = []; }
+  }
+
+  function saveRecords() {
+    if (!Store.ok) return;
+    try {
+      localStorage.setItem(RK, JSON.stringify(Store.data));
+    } catch (e) {
+      try {
+        Store.data = Store.data.slice(0, Math.max(0, Math.floor(Store.data.length / 2)));
+        localStorage.setItem(RK, JSON.stringify(Store.data));
+      } catch (e2) { Store.ok = false; }
+    }
+  }
+
+  function pad2(v) { return v < 10 ? '0' + v : '' + v; }
+
+  function fmtTime(ts) {
+    var d = new Date(ts);
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) +
+      ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+  }
+
+  function makeThumb(canvas) {
+    try {
+      var S = 96;
+      var ratio = Math.min(S / canvas.width, S / canvas.height);
+      var t = document.createElement('canvas');
+      t.width = Math.max(1, Math.round(canvas.width * ratio));
+      t.height = Math.max(1, Math.round(canvas.height * ratio));
+      t.getContext('2d').drawImage(canvas, 0, 0, t.width, t.height);
+      return t.toDataURL('image/jpeg', 0.7);
+    } catch (e) { return ''; }
+  }
+
+  function addRecord(src, thumb) {
+    var p = linearProba(state.x);
+    var k = argmax(p);
+    Store.data.unshift({
+      id: 'r' + Date.now() + Math.floor(Math.random() * 1000),
+      t: Date.now(),
+      src: src,
+      thumb: thumb || '',
+      x: state.x.slice(),
+      cls: k,
+      p: Number(p[k].toFixed(4))
+    });
+    if (Store.data.length > 200) Store.data.length = 200;
+    saveRecords();
+    renderRecords();
+    var hint = $('saveHint');
+    if (hint) {
+      hint.textContent = '已记录 ✓';
+      setTimeout(function () { hint.textContent = ''; }, 2200);
+    }
+  }
+
+  function renderRecords() {
+    var list = Store.data;
+    var cnt = [0, 0, 0], psum = 0;
+    list.forEach(function (r) { cnt[r.cls] = (cnt[r.cls] || 0) + 1; psum += r.p; });
+
+    var stats = [
+      ['累计记录', list.length, '条'],
+      ['完美', cnt[0], '条'],
+      ['良好', cnt[1], '条'],
+      ['不好', cnt[2], '条'],
+      ['平均置信度', list.length ? (psum / list.length * 100).toFixed(1) : '—', '%']
+    ];
+    var sh = '';
+    stats.forEach(function (s) {
+      sh += '<div class="rec-stat"><div class="k">' + s[0] + '</div><div class="v">' +
+        s[1] + '<small>' + s[2] + '</small></div></div>';
+    });
+    $('recStats').innerHTML = sh;
+
+    var filter = ($('recFilter').value === '' || $('recFilter').value === undefined)
+      ? -1 : Number($('recFilter').value);
+    var rows = list.filter(function (r) { return filter < 0 || r.cls === filter; });
+    $('recCount').textContent = list.length
+      ? '共 ' + list.length + ' 条' + (filter >= 0 ? '，筛出 ' + rows.length + ' 条' : '')
+      : '还没有记录';
+
+    if (!rows.length) {
+      $('recBody').innerHTML = '<tr><td colspan="10" class="rec-empty">' +
+        (list.length ? '这个类别下还没有记录。' :
+          '还没有记录。上传一张照片，或调好滑杆后点「记录当前结果」，记录会出现在这里。') +
+        '</td></tr>';
+      return;
+    }
+
+    var h = '';
+    rows.forEach(function (r) {
+      var th = r.thumb ? '<img src="' + r.thumb + '" alt="记录缩略图">' : '<span class="ph">✎</span>';
+      h += '<tr>' +
+        '<td class="rec-thumb">' + th + '</td>' +
+        '<td>' + fmtTime(r.t) + '</td>' +
+        '<td>' + (r.src === 'photo' ? '照片' : '手动') + '</td>' +
+        '<td><span class="pill ' + CL[r.cls].key + '">' + CL[r.cls].name + '</span></td>' +
+        '<td>' + (r.p * 100).toFixed(1) + '%</td>' +
+        '<td>' + num(r.x[1], 1) + '</td>' +
+        '<td>' + num(r.x[2], 0) + '</td>' +
+        '<td>' + num(r.x[7], 1) + '</td>' +
+        '<td>' + num(r.x[8], 0) + '</td>' +
+        '<td><button class="linkbtn" data-load="' + r.id + '">载入</button>' +
+        '<button class="linkbtn del" data-del="' + r.id + '">删除</button></td>' +
+        '</tr>';
+    });
+    $('recBody').innerHTML = h;
+  }
+
+  function exportCSV() {
+    if (!Store.data.length) {
+      $('recCount').textContent = '没有记录可导出';
+      return;
+    }
+    var head = ['时间', '来源', '判定', '置信度'];
+    F.forEach(function (f) { head.push(f.name + '(' + f.unit + ')'); });
+    var lines = [head.join(',')];
+    Store.data.forEach(function (r) {
+      var row = [fmtTime(r.t), r.src === 'photo' ? '照片' : '手动', CL[r.cls].name,
+        (r.p * 100).toFixed(1) + '%'];
+      F.forEach(function (f, i) { row.push(r.x[i]); });
+      lines.push(row.join(','));
+    });
+    try {
+      var blob = new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = '苹果检测记录_' + fmtTime(Date.now()).replace(/[:\s]/g, '-') + '.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 3000);
+      $('recCount').textContent = '已导出 ' + Store.data.length + ' 条';
+    } catch (e) {
+      $('recCount').textContent = '导出失败，请换浏览器试试';
+    }
+  }
+
+  function downloadBlob(text, name, mime) {
+    try {
+      var blob = new Blob([text], { type: mime });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 3000);
+      return true;
+    } catch (e) { return false; }
+  }
+
+  /* 整份记录（含缩略图）导出为 JSON，供换浏览器 / 换设备时导入 */
+  function exportJSON() {
+    if (!Store.data.length) { $('recCount').textContent = '没有记录可备份'; return; }
+    var payload = {
+      app: 'apple-quality-lab',
+      v: 1,
+      exportedAt: new Date().toISOString(),
+      count: Store.data.length,
+      keys: window.APPLE_KEYS,
+      records: Store.data
+    };
+    var ok = downloadBlob(JSON.stringify(payload),
+      '苹果检测记录备份_' + fmtTime(Date.now()).replace(/[:\s]/g, '-') + '.json',
+      'application/json');
+    $('recCount').textContent = ok
+      ? '已导出 ' + Store.data.length + ' 条（含缩略图），可在别的浏览器导入'
+      : '导出失败，请换浏览器试试';
+  }
+
+  function importJSON(file) {
+    var reader = new FileReader();
+    reader.onload = function () {
+      try {
+        var raw = String(reader.result || '');
+        if (raw.charCodeAt(0) === 0xFEFF) raw = raw.slice(1);
+        var obj = JSON.parse(raw);
+        var incoming = Array.isArray(obj) ? obj : (obj && obj.records);
+        if (!Array.isArray(incoming)) throw new Error('结构不是记录数组');
+
+        var byId = {};
+        Store.data.forEach(function (r) { byId[r.id] = r; });
+        var added = 0;
+        incoming.forEach(function (r) {
+          if (!r || !Array.isArray(r.x) || r.x.length !== F.length) return;
+          if (typeof r.cls !== 'number' || r.cls < 0 || r.cls >= CL.length) return;
+          if (!r.id) r.id = 'r' + (r.t || Date.now()) + Math.floor(Math.random() * 1000);
+          if (byId[r.id]) return;
+          byId[r.id] = r;
+          added++;
+        });
+        Store.data = Object.keys(byId).map(function (k) { return byId[k]; })
+          .sort(function (a, b) { return (b.t || 0) - (a.t || 0); });
+        if (Store.data.length > 200) Store.data.length = 200;
+        saveRecords();
+        renderRecords();
+        $('recCount').textContent = '导入完成：新增 ' + added + ' 条，现共 ' + Store.data.length + ' 条';
+      } catch (e) {
+        $('recCount').textContent = '导入失败：文件不是有效的备份 JSON';
+      }
+    };
+    reader.onerror = function () { $('recCount').textContent = '文件读取失败'; };
+    reader.readAsText(file);
+  }
+
+  function initRecords() {
+    loadRecords();
+    if (!Store.ok) $('recWarn').style.display = 'block';
+    renderRecords();
+
+    $('recBody').addEventListener('click', function (e) {
+      var t = e.target;
+      if (!t || !t.dataset) return;
+      if (t.dataset.load) {
+        var rec = null;
+        for (var i = 0; i < Store.data.length; i++) {
+          if (Store.data[i].id === t.dataset.load) { rec = Store.data[i]; break; }
+        }
+        if (rec) {
+          setX(rec.x);
+          var target = document.getElementById('detect');
+          if (target && target.scrollIntoView) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      } else if (t.dataset.del) {
+        Store.data = Store.data.filter(function (r) { return r.id !== t.dataset.del; });
+        saveRecords();
+        renderRecords();
+      }
+    });
+
+    $('recFilter').addEventListener('change', renderRecords);
+    $('btnExport').addEventListener('click', exportCSV);
+    $('btnExportJson').addEventListener('click', exportJSON);
+    $('btnImportJson').addEventListener('click', function () { $('importFile').click(); });
+    $('importFile').addEventListener('change', function (e) {
+      var f = e.target.files && e.target.files[0];
+      if (f) importJSON(f);
+      e.target.value = '';
+    });
+
+    $('btnClearRec').addEventListener('click', function () {
+      var btn = $('btnClearRec');
+      if (!Store.data.length) { $('recCount').textContent = '没有记录可清空'; return; }
+      if (!clearArmed) {
+        clearArmed = true;
+        btn.textContent = '再点一次确认清空';
+        btn.style.color = '#a83f37';
+        setTimeout(function () {
+          clearArmed = false;
+          btn.textContent = '清空记录';
+          btn.style.color = '';
+        }, 3200);
+        return;
+      }
+      clearArmed = false;
+      btn.textContent = '清空记录';
+      btn.style.color = '';
+      Store.data = [];
+      saveRecords();
+      renderRecords();
+    });
+
+    $('btnSaveRec').addEventListener('click', function () { addRecord('manual', ''); });
+  }
+
+  /* ---------------- 评估区 ---------------- */
+  function renderMetrics() {
+    var L = M.metrics.linear, T = M.metrics.tree, base = M.meta.baseline_accuracy;
+    var gain = (L.accuracy - base) * 100;
+    var cards = [
+      { k: '线性模型 · CV 准确率', v: L.accuracy.toFixed(4), s: '±' + L.fold_std.toFixed(4) + ' · 5 折' },
+      { k: '决策树 · CV 准确率', v: T.accuracy.toFixed(4), s: '±' + T.fold_std.toFixed(4) + ' · 深度 ' + M.meta.tree_depth },
+      { k: '线性模型 · 宏平均 F1', v: L.macro_f1.toFixed(4), s: '三类等权平均' },
+      { k: '较随机基线提升', v: '+' + gain.toFixed(1) + ' pp', s: '基线 ' + base.toFixed(4) }
+    ];
+    var html = '';
+    cards.forEach(function (c) {
+      html += '<div class="metric"><div class="k">' + c.k + '</div><div class="v">' + c.v +
+        '</div><div class="s">' + c.s + '</div></div>';
+    });
+    $('metrics').innerHTML = html;
+
+    $('heroStats').innerHTML =
+      '<div class="stat"><div class="k">样本总量</div><div class="v">' + M.meta.n_samples + '<small>份</small></div></div>' +
+      '<div class="stat"><div class="k">线性模型准确率</div><div class="v">' + (L.accuracy * 100).toFixed(1) + '<small>%</small></div></div>' +
+      '<div class="stat"><div class="k">决策树准确率</div><div class="v">' + (T.accuracy * 100).toFixed(1) + '<small>%</small></div></div>' +
+      '<div class="stat"><div class="k">决策树规模</div><div class="v">' + M.meta.tree_nodes + '<small>节点 / 深 ' + M.meta.tree_depth + '</small></div></div>';
+
+    var counts = [0, 0, 0];
+    SM.forEach(function (s) { counts[s[s.length - 1]]++; });
+    $('dataSub').textContent = SM.length + ' 份样本 · 完美 ' + counts[0] + ' / 良好 ' + counts[1] +
+      ' / 不好 ' + counts[2] + ' · 含 ' + Math.round(META.label_noise * 100) + '% 标注噪声';
+    $('footMeta').textContent = '单文件版 · 模型训练于 ' + M.meta.trained_at;
+  }
+
+  function renderCM(host, cm, rep) {
+    var max = Math.max.apply(null, cm.flat ? cm.flat() : [].concat.apply([], cm));
+    var h = '<div class="cm-wrap"><div class="cm-side"></div>';
+    CL.forEach(function (c) { h += '<div class="cm-head">' + c.name + '</div>'; });
+    cm.forEach(function (row, t) {
+      h += '<div class="cm-side">' + CL[t].name + '</div>';
+      row.forEach(function (v, p) {
+        var a = max ? v / max : 0;
+        var diag = t === p;
+        var bg = diag ? 'rgba(47,158,111,' + (0.10 + 0.55 * a).toFixed(2) + ')'
+                      : 'rgba(217,105,95,' + (0.08 + 0.42 * a).toFixed(2) + ')';
+        var col = a > 0.5 ? '#fff' : '#14231c';
+        h += '<div class="cm-cell ' + (diag ? 'diag' : '') + '" style="background:' + bg + ';color:' + col + '">' + v + '</div>';
+      });
+    });
+    h += '</div>';
+    h += '<div style="margin-top:14px;font-size:12px;color:#55685e"><table style="font-size:12px"><thead><tr>' +
+      '<th>类别</th><th>查准率 P</th><th>查全率 R</th><th>F1</th><th>样本</th></tr></thead><tbody>';
+    CL.forEach(function (c) {
+      var m = rep.per_class[c.key];
+      h += '<tr><td>' + c.name + '</td><td>' + m.precision.toFixed(3) + '</td><td>' + m.recall.toFixed(3) +
+        '</td><td>' + m.f1.toFixed(3) + '</td><td>' + m.support + '</td></tr>';
+    });
+    h += '</tbody></table><div style="margin-top:8px;font-family:var(--mono)">各折准确率：' +
+      rep.fold_acc.map(function (v) { return v.toFixed(3); }).join(' / ') + '</div></div>';
+    host.innerHTML = h;
+  }
+
+  function renderLearningCurve() {
+    var lc = M.metrics.learning_curve;
+    var W = 820, H = 300, pad = { l: 54, r: 18, t: 18, b: 42 };
+    var all = [].concat(lc.linear_train, lc.linear_test, lc.tree_train, lc.tree_test);
+    var lo = Math.min.apply(null, all), hi = Math.max.apply(null, all);
+    lo = Math.max(0, Math.floor((lo - 0.04) * 20) / 20);
+    hi = Math.min(1, Math.ceil((hi + 0.02) * 20) / 20);
+    var xs = lc.n_train;
+    var x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs);
+    var X = function (v) { return pad.l + ((v - x0) / (x1 - x0 || 1)) * (W - pad.l - pad.r); };
+    var Y = function (v) { return H - pad.b - ((v - lo) / (hi - lo || 1)) * (H - pad.t - pad.b); };
+
+    var g = '';
+    for (var i = 0; i <= 4; i++) {
+      var yv = lo + ((hi - lo) * i) / 4, y = Y(yv);
+      g += '<line x1="' + pad.l + '" x2="' + (W - pad.r) + '" y1="' + y + '" y2="' + y + '" stroke="#eef3f0"/>' +
+        '<text x="' + (pad.l - 9) + '" y="' + (y + 4) + '" text-anchor="end" font-size="10.5" fill="#8a9a91" font-family="monospace">' +
+        (yv * 100).toFixed(0) + '%</text>';
+    }
+    xs.forEach(function (n) {
+      g += '<text x="' + X(n) + '" y="' + (H - pad.b + 18) + '" text-anchor="middle" font-size="10.5" fill="#8a9a91" font-family="monospace">' + n + '</text>';
+    });
+    g += '<text x="' + ((pad.l + W - pad.r) / 2) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="11" fill="#8a9a91">训练样本数</text>';
+
+    function line(arr, color, dash) {
+      var pts = arr.map(function (v, j) { return X(xs[j]) + ',' + Y(v); }).join(' ');
+      var dots = arr.map(function (v, j) {
+        return '<circle cx="' + X(xs[j]) + '" cy="' + Y(v) + '" r="' + (dash ? 2.6 : 3.4) +
+          '" fill="#fff" stroke="' + color + '" stroke-width="2" opacity="' + (dash ? 0.6 : 1) + '"/>';
+      }).join('');
+      return '<polyline points="' + pts + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-dasharray="' +
+        (dash || 'none') + '" stroke-linejoin="round" stroke-linecap="round" opacity="' + (dash ? 0.5 : 1) + '"/>' + dots;
+    }
+
+    $('lcChart').innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" class="chart" preserveAspectRatio="xMidYMid meet" role="img" aria-label="学习曲线">' +
+      g + '<line x1="' + pad.l + '" x2="' + (W - pad.r) + '" y1="' + (H - pad.b) + '" y2="' + (H - pad.b) + '" stroke="#d8e3dc"/>' +
+      line(lc.tree_train, '#d99a2b') + line(lc.tree_test, '#d99a2b', '5 4') +
+      line(lc.linear_train, '#2f9e6f') + line(lc.linear_test, '#2f9e6f', '5 4') + '</svg>';
+  }
+
+  function renderImportance() {
+    function maxOf(list) {
+      return Math.max.apply(null, list.map(function (d) { return d[1]; })) || 1;
+    }
+    function rowsFor(list, cls) {
+      var mx = maxOf(list), out = '';
+      list.forEach(function (d) {
+        out += '<div class="imp-row ' + cls + '"><span>' + d[0] + '</span><span class="imp-bar"><i style="width:' +
+          Math.max(2, (d[1] / mx) * 100).toFixed(1) + '%"></i></span><span class="imp-val">' + d[1].toFixed(3) + '</span></div>';
+      });
+      return out;
+    }
+    var lin = M.linear.feature_importance.map(function (v, i) { return [F[i].name, v]; })
+      .sort(function (a, b) { return b[1] - a[1]; }).slice(0, 8);
+    var tre = M.tree.feature_importance.map(function (v, i) { return [F[i].name, v]; })
+      .sort(function (a, b) { return b[1] - a[1]; }).slice(0, 8);
+    $('impLinear').innerHTML = rowsFor(lin, 'lin');
+    $('impTree').innerHTML = rowsFor(tre, 'tree');
+  }
+
+  /* ---------------- 数据区 ---------------- */
+  function renderDist() {
+    var counts = [0, 0, 0];
+    SM.forEach(function (s) { counts[s[s.length - 1]]++; });
+    var total = counts.reduce(function (a, b) { return a + b; }, 0);
+    var bar = '', leg = '';
+    counts.forEach(function (c, i) {
+      bar += '<i style="width:' + ((c / total) * 100).toFixed(2) + '%;background:' + CL[i].color + '"></i>';
+      leg += '<span><i style="display:inline-block;width:9px;height:9px;border-radius:3px;background:' +
+        CL[i].color + ';margin-right:6px"></i>' + CL[i].name + ' <b>' + c + '</b> 份 · ' +
+        ((c / total) * 100).toFixed(1) + '%</span>';
+    });
+    $('distBar').innerHTML = bar;
+    $('distLegend').innerHTML = leg;
+  }
+
+  function renderHist() {
+    var fi = Number($('histFeature').value);
+    var f = F[fi], bins = TUNE.histBins;
+    var step = (f.max - f.min) / bins;
+    var grid = [];
+    for (var b = 0; b < bins; b++) grid.push([0, 0, 0]);
+    SM.forEach(function (s) {
+      var v = s[1 + fi];
+      var idx = Math.floor((v - f.min) / step);
+      if (idx < 0) idx = 0;
+      if (idx >= bins) idx = bins - 1;
+      grid[idx][s[s.length - 1]]++;
+    });
+
+    var W = 820, H = 260, pad = { l: 44, r: 14, t: 14, b: 40 };
+    var maxY = Math.max.apply(null, grid.map(function (g) { return g.reduce(function (a, c) { return a + c; }, 0); })) || 1;
+    var bw = (W - pad.l - pad.r) / bins;
+    var svg = '';
+    for (var i = 0; i <= 4; i++) {
+      var y = H - pad.b - ((H - pad.t - pad.b) * i) / 4;
+      svg += '<line x1="' + pad.l + '" x2="' + (W - pad.r) + '" y1="' + y + '" y2="' + y + '" stroke="#eef3f0"/>' +
+        '<text x="' + (pad.l - 8) + '" y="' + (y + 4) + '" text-anchor="end" font-size="10" fill="#8a9a91" font-family="monospace">' +
+        Math.round(maxY * i / 4) + '</text>';
+    }
+    grid.forEach(function (g, i2) {
+      var acc = 0;
+      var x = pad.l + i2 * bw + bw * 0.12, w = bw * 0.76;
+      g.forEach(function (c, ci) {
+        if (!c) return;
+        var h = ((H - pad.t - pad.b) * c) / maxY;
+        var y2 = H - pad.b - ((H - pad.t - pad.b) * acc) / maxY - h;
+        svg += '<rect x="' + x.toFixed(1) + '" y="' + y2.toFixed(1) + '" width="' + w.toFixed(1) +
+          '" height="' + h.toFixed(1) + '" fill="' + CL[ci].color + '" opacity=".85" rx="2"/>';
+        acc += c;
+      });
+      if (i2 % 2 === 0) {
+        var mid = f.min + step * (i2 + 0.5);
+        svg += '<text x="' + (pad.l + i2 * bw + bw / 2).toFixed(1) + '" y="' + (H - pad.b + 16) +
+          '" text-anchor="middle" font-size="10" fill="#8a9a91" font-family="monospace">' + num(mid, f.dec) + '</text>';
+      }
+    });
+    svg += '<text x="' + ((pad.l + W - pad.r) / 2) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="11" fill="#8a9a91">' +
+      f.name + '（' + f.unit + '）</text>';
+    $('histChart').innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" class="chart" preserveAspectRatio="xMidYMid meet">' + svg + '</svg>';
+  }
+
+  function renderTable() {
+    var head = '<th>编号</th>';
+    F.forEach(function (f) { head += '<th>' + f.name + '</th>'; });
+    head += '<th>判定</th>';
+    $('tableHead').innerHTML = head;
+
+    var rows = SM.filter(function (s) { return state.filter < 0 || s[s.length - 1] === state.filter; });
+    $('tableCount').textContent = '共 ' + rows.length + ' 条 · 显示第 ' + Math.min(state.offset + 1, rows.length) + ' 条起';
+    var html = '';
+    for (var i = 0; i < TUNE.tableRows; i++) {
+      var s = rows[(state.offset + i) % rows.length];
+      if (!s) break;
+      var y = s[s.length - 1];
+      html += '<tr><td>' + s[0] + '</td>';
+      F.forEach(function (f, j) { html += '<td>' + num(s[1 + j], f.dec) + '</td>'; });
+      html += '<td><span class="pill ' + CL[y].key + '">' + CL[y].name + '</span></td></tr>';
+    }
+    $('tableBody').innerHTML = html;
+  }
+
+  /* ---------------- 交互 ---------------- */
+  function pickPreset(cls) {
+    var pool = SM.filter(function (s) { return s[s.length - 1] === cls; });
+    var s = pool[Math.floor(Math.random() * pool.length)];
+    setX(s.slice(1, 1 + F.length));
+  }
+
+  function bind() {
+    $('btnRandom').addEventListener('click', function () {
+      var s = SM[Math.floor(Math.random() * SM.length)];
+      setX(s.slice(1, 1 + F.length));
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-preset]'), function (b) {
+      b.addEventListener('click', function () { pickPreset(Number(b.dataset.preset)); });
+    });
+    $('btnMean').addEventListener('click', function () { setX(M.linear.mean.slice()); });
+
+    $('strict').addEventListener('input', function (e) {
+      state.strict = Number(e.target.value) / 100;
+      $('strictVal').textContent = state.strict.toFixed(2);
+      render();
+    });
+
+    Array.prototype.forEach.call(document.querySelectorAll('#modelTabs .tab'), function (t) {
+      t.addEventListener('click', function () {
+        Array.prototype.forEach.call(document.querySelectorAll('#modelTabs .tab'), function (x) { x.classList.remove('on'); });
+        t.classList.add('on');
+        state.model = t.dataset.model;
+        render();
+      });
+    });
+
+    var opts = '';
+    F.forEach(function (f, i) { opts += '<option value="' + i + '">' + f.name + '（' + f.unit + '）</option>'; });
+    $('histFeature').innerHTML = opts;
+    $('histFeature').value = '5';
+    $('histFeature').addEventListener('change', renderHist);
+
+    $('filterClass').addEventListener('change', function (e) {
+      state.filter = Number(e.target.value);
+      state.offset = 0;
+      renderTable();
+    });
+    $('btnShuffle').addEventListener('click', function () {
+      state.offset = Math.floor(Math.random() * Math.max(1, SM.length - TUNE.tableRows));
+      renderTable();
+    });
+  }
+
+  function boot() {
+    if (!window.APPLE_MODELS || !window.APPLE_SAMPLES || !window.APPLE_SAMPLES.length) {
+      document.body.insertAdjacentHTML('afterbegin',
+        '<div style="padding:14px 20px;background:#fdeceb;color:#a83f37;font-size:13px">' +
+        '数据未注入：请运行 <b>rebuild.py</b> 生成数据块，或在文件内填写 window.APPLE_SAMPLES。</div>');
+      return;
+    }
+    buildFeats();
+    bind();
+    initPhoto();
+    initRecords();
+    initSteps();
+    state.x = M.linear.mean.map(function (v, i) { return Number(num(v, F[i].dec)); });
+    F.forEach(function (_, i) { paintSlider(i); });
+    render();
+    renderMetrics();
+    renderCM($('cmLinear'), M.metrics.linear.confusion, M.metrics.linear);
+    renderCM($('cmTree'), M.metrics.tree.confusion, M.metrics.tree);
+    renderLearningCurve();
+    renderImportance();
+    renderDist();
+    renderHist();
+    renderTable();
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+})();
+</script>
+</body>
+</html>
